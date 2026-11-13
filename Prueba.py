@@ -272,7 +272,6 @@ with tab1:
         if lista_archivos:
             aviso(f"Este equipo cuenta con {len(lista_archivos)} archivo(s) adjunto(s).", "ok")
             
-            # Listado en conjunto y previsualización de fotos del equipo
             for arc in lista_archivos:
                 nombre_arc = arc.get('nombre_archivo', 'Archivo')
                 url_arc = arc.get('archivo_url')
@@ -282,10 +281,9 @@ with tab1:
                     
                     if any(url_arc.lower().endswith(ext) for ext in ['.png', '.jpg', '.jpeg']):
                         st.image(url_arc, caption=f"Fotografía del equipo: {nombre_arc}", use_container_width=True)
-                        st.markdown(f"[Abrir imagen en pestaña completa]({url_arc})")
                     elif url_arc.lower().endswith('.pdf'):
                         st.info("Archivo PDF disponible para visualización.")
-                        st.markdown(f"[Hacer clic aquí para abrir el PDF en el navegador]({url_arc})")
+                        st.markdown(f"[Abrir el PDF en el navegador]({url_arc})")
                     else:
                         st.markdown(f"[Descargar archivo]({url_arc})")
         else:
