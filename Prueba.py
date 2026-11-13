@@ -255,7 +255,7 @@ tab1, tab2, tab3 = st.tabs([
 ])
 
 # ---------------------------------------------------------------------------
-# Pestaña 1: Ficha, Archivos y Refacciones Asociadas (Distribución limpia)
+# Pestaña 1: Ficha, Archivos y Refacciones Asociadas
 # ---------------------------------------------------------------------------
 with tab1:
     col_f1, col_f2 = st.columns([1.1, 0.9])
@@ -335,7 +335,7 @@ with tab1:
             aviso("No hay refacciones asociadas a este equipo.")
 
 # ---------------------------------------------------------------------------
-# Pestaña 2: Navegar refacciones asociadas y asignar nuevas
+# Pestaña 2: Navegar refacciones asociadas y asignar nuevas (Con soporte decimal)
 # ---------------------------------------------------------------------------
 with tab2:
     col_n1, col_n2 = st.columns([1.3, 0.7])
@@ -376,7 +376,9 @@ with tab2:
 
                 ref_elegida_label = st.selectbox("Selecciona del catálogo:", list(opciones_catalogo.keys()))
                 id_ref_elegida = opciones_catalogo[ref_elegida_label]
-                cantidad_req = st.number_input("Cantidad requerida:", min_value=1, value=1, step=1)
+                
+                # SOPORTE PARA NÚMEROS FLOTANTES / DECIMALES (ej: 1.5 metros, 0.5 rollos)
+                cantidad_req = st.number_input("Cantidad requerida:", min_value=0.01, value=1.0, step=0.1, format="%.2f")
 
                 if st.form_submit_button("Vincular refacción"):
                     try:
