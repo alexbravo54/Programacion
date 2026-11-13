@@ -275,14 +275,14 @@ with tab1:
                 id_arc = arc.get('id')
                 
                 with st.container(border=True):
-                    st.markdown(f"📄 **{nombre_arc}**")
+                    st.markdown(f"Archivo: **{nombre_arc}**")
                     
                     if any(url_arc.lower().endswith(ext) for ext in ['.png', '.jpg', '.jpeg']):
                         st.image(url_arc, caption=nombre_arc, use_container_width=True)
                         st.markdown(f"[Abrir imagen en pestaña completa]({url_arc})")
                     elif url_arc.lower().endswith('.pdf'):
                         st.info("Archivo PDF disponible para visualización o descarga.")
-                        st.markdown(f"👉 **[Hacer clic aquí para abrir el PDF en el navegador]({url_arc})**")
+                        st.markdown(f"[Hacer clic aquí para abrir el PDF en el navegador]({url_arc})")
                     else:
                         st.markdown(f"[Descargar archivo]({url_arc})")
                     
@@ -424,7 +424,6 @@ with tab2:
                 ref_elegida_label = st.selectbox("Selecciona del catálogo:", list(opciones_catalogo.keys()))
                 id_ref_elegida = opciones_catalogo[ref_elegida_label]
                 
-                # Soporte para decimales (hasta dos decimales)
                 cantidad_req = st.number_input("Cantidad requerida:", min_value=0.01, value=1.0, step=0.1, format="%.2f")
 
                 if st.form_submit_button("Vincular refacción"):
@@ -478,7 +477,7 @@ with tab3:
             excel_data = convertir_df_a_excel(df_bitacora)
             
             st.download_button(
-                label="📥 Descargar Bitácora en Excel (.xlsx)",
+                label="Descargar Bitácora en Excel (.xlsx)",
                 data=excel_data,
                 file_name=f"Bitacora_{codigo_activo_actual}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
