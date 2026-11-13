@@ -280,13 +280,15 @@ with tab1:
                     try:
                         file_path = f"{codigo_activo_actual}/{archivo_subido.name}"
 
-                        supabase.storage.from_("archivos_equipos").upload(
+                        # Se actualizó el nombre del bucket aquí:
+                        supabase.storage.from_("Archivo equipos").upload(
                             file_path,
                             archivo_subido.getvalue(),
                             file_options={"upsert": "true"}
                         )
 
-                        public_url = supabase.storage.from_("archivos_equipos").get_public_url(file_path)
+                        # Se actualizó el nombre del bucket aquí también:
+                        public_url = supabase.storage.from_("Archivo equipos").get_public_url(file_path)
 
                         supabase.table("equipos").update({"archivo_url": public_url}).eq("id", id_equipo_actual).execute()
 
@@ -298,10 +300,8 @@ with tab1:
                     aviso("Selecciona un archivo primero.", "warn", suelto=True)
 
     with col_f2:
-        # 1. Últimas 3 refacciones ingresadas
         encabezado_panel("Últimas 3 refacciones ingresadas")
         if ref_asignadas:
-            # Ordenar por fecha de creación descendiente si existe el campo, o tomar los últimos
             ref_ordenadas = sorted(ref_asignadas, key=lambda x: x.get('created_at', '') or '', reverse=True)[:3]
             datos_ref_recientes = []
             for item in ref_ordenadas:
@@ -321,7 +321,6 @@ with tab1:
 
         st.markdown("")
 
-        # 2. Últimos 3 reportes de la bitácora
         encabezado_panel("Últimos 3 reportes de bitácora")
         if historial:
             historial_ultimos_3 = sorted(historial, key=lambda x: x.get('created_at', ''), reverse=True)[:3]
@@ -398,7 +397,6 @@ with tab2:
                 ref_elegida_label = st.selectbox("Selecciona del catálogo:", list(opciones_catalogo.keys()))
                 id_ref_elegida = opciones_catalogo[ref_elegida_label]
                 
-                # Soporte para decimales (asegúrate de que en Supabase la columna sea de tipo numeric/float)
                 cantidad_req = st.number_input("Cantidad requerida:", min_value=0.01, value=1.0, step=0.1, format="%.2f")
 
                 if st.form_submit_button("Vincular refacción"):
