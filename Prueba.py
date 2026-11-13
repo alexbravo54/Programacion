@@ -255,7 +255,7 @@ tab1, tab2, tab3 = st.tabs([
 ])
 
 # ---------------------------------------------------------------------------
-# Pestaña 1: Ficha, Archivos y Refacciones Asociadas (Distribución 60/40 más espaciosa)
+# Pestaña 1: Ficha, Archivos y Refacciones Asociadas (Distribución limpia)
 # ---------------------------------------------------------------------------
 with tab1:
     col_f1, col_f2 = st.columns([1.1, 0.9])
@@ -308,7 +308,6 @@ with tab1:
                     item_num = ref_detalles.get('ITEM')
                     desc = ref_detalles.get('DESCRIPCION')
                     
-                    # Ocultamos completamente el ID de relación y dejamos una etiqueta clara
                     label_desc = f"Ítem {item_num} - {desc}"
                     opciones_desvincular[label_desc] = item.get("id")
                     
@@ -336,60 +335,65 @@ with tab1:
             aviso("No hay refacciones asociadas a este equipo.")
 
 # ---------------------------------------------------------------------------
-# Pestaña 2: Navegador y Asignador de Refacciones
+# Pestaña 2: Navegar refacciones asociadas y asignar nuevas
 # ---------------------------------------------------------------------------
 with tab2:
-    encabezado_panel("Catálogo general para navegar y asignar refacciones")
-    
-    cat_ref_res = supabase.table("refacciones").select("*").execute()
-    catalogo = cat_ref_res.data or []
+    col_n1, col_n2 = st.columns([1.3, 0.7])
 
-    if catalogo:
-        st.markdown("🔍 **Explora el catálogo completo de refacciones:**")
-        
-        datos_catalogo_visual = []
-        opciones_catalogo = {}
-        for r in catalogo:
-            item_id = r.get('id')
-            item_num = r.get('ITEM', 'Sin Ítem')
-            desc = r.get('DESCRIPCION', 'Sin Descripción')
-            ref = r.get('REFERENCIA', 'Sin Referencia')
+    with col_n1:
+        encabezado_panel("Navegador de refacciones asociadas a este equipo")
+        if ref_asignadas:
+            datos_asociadas_nav = []
+            for item in ref_asignadas:
+                ref_detalles = item.get("refacciones", {})
+                if ref_detalles:
+                    datos_asociadas_nav.append({
+                        "Ítem": ref_detalles.get('ITEM'),
+                        "Descripción": ref_detalles.get('DESCRIPCION'),
+                        "Referencia": ref_detalles.get('REFERENCIA'),
+                        "Cantidad Asignada": item.get("cantidad_requerida")
+                    })
             
-            label = f"Ítem: {item_num} - {desc} (Ref: {ref})"
-            opciones_catalogo[label] = item_id
-            
-            datos_catalogo_visual.append({
-                "Ítem": item_num,
-                "Descripción": desc,
-                "Referencia": ref
-            })
-            
-        st.dataframe(datos_catalogo_visual, use_container_width=True, hide_index=True)
-        
-        st.markdown("---")
-        st.subheader("Vincular refacción seleccionada al equipo actual")
-        
-        with st.form("form_asignar_ref_visual"):
-            ref_elegida_label = st.selectbox("Selecciona la refacción del catálogo para asignar:", list(opciones_catalogo.keys()))
-            id_ref_elegida = opciones_catalogo[ref_elegida_label]
-            cantidad_req = st.number_input("Cantidad requerida para este equipo:", min_value=1, value=1, step=1)
+            df_asociadas = pd.DataFrame(datos_asociadas_nav)
+            st.dataframe(df_asociadas, use_container_width=True, hide_index=True)
+        else:
+            aviso("Este equipo aún no tiene refacciones asociadas.")
 
-            if st.form_submit_button("Vincular refacción al equipo"):
-                try:
-                    supabase.table("equipo_refacciones").insert({
-                        "registro_id": id_equipo_actual,
-                        "refaccion_id": id_ref_elegida,
-                        "cantidad_requerida": cantidad_req
-                    }).execute()
-                    st.success("Refacción asignada con éxito.")
-                    st.rerun()
-                except Exception as e:
-                    aviso(f"Error al asignar: {e}", "error", suelto=True)
-    else:
-        aviso("El catálogo global de refacciones está vacío.", "warn")
+    with col_n2:
+        encabezado_panel("Asignar nueva refacción")
+        cat_ref_res = supabase.table("refacciones").select("*").execute()
+        catalogo = cat_ref_res.data or []
+
+        if catalogo:
+            with st.form("form_asignar_ref_visual"):
+                opciones_catalogo = {}
+                for r in catalogo:
+                    item_id = r.get('id')
+                    item_num = r.get('ITEM', 'Sin Ítem')
+                    desc = r.get('DESCRIPCION', 'Sin Descripción')
+                    label = f"Ítem {item_num} - {desc}"
+                    opciones_catalogo[label] = item_id
+
+                ref_elegida_label = st.selectbox("Selecciona del catálogo:", list(opciones_catalogo.keys()))
+                id_ref_elegida = opciones_catalogo[ref_elegida_label]
+                cantidad_req = st.number_input("Cantidad requerida:", min_value=1, value=1, step=1)
+
+                if st.form_submit_button("Vincular refacción"):
+                    try:
+                        supabase.table("equipo_refacciones").insert({
+                            "registro_id": id_equipo_actual,
+                            "refaccion_id": id_ref_elegida,
+                            "cantidad_requerida": cantidad_req
+                        }).execute()
+                        st.success("Refacción asignada con éxito.")
+                        st.rerun()
+                    except Exception as e:
+                        aviso(f"Error al asignar: {e}", "error", suelto=True)
+        else:
+            aviso("El catálogo global está vacío.", "warn")
 
 # ---------------------------------------------------------------------------
-# Pestaña 3: Bitácora (Navegable y Exportable a Excel con mejor proporción)
+# Pestaña 3: Bitácora (Navegable y Exportable a Excel)
 # ---------------------------------------------------------------------------
 with tab3:
     col_h1, col_h2 = st.columns([1.3, 0.7])
