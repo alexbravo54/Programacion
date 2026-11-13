@@ -19,7 +19,7 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------------------------
-# Estilo corporativo y optimización visual
+# Estilo corporativo y optimización visual (Incluye ajuste para desplegables anchos)
 # ---------------------------------------------------------------------------
 st.markdown("""
 <style>
@@ -73,6 +73,13 @@ st.markdown("""
     .crumb { font-size: 12px; color: var(--txt-2); margin-bottom: 6px; }
     .titulo { font-size: 26px; font-weight: 500; color: var(--navy); margin: 0 0 4px 0; }
     .subtitulo { font-size: 13px; color: #3B465A; margin-bottom: 22px; }
+
+    /* Forzar mayor ancho y legibilidad en los menús desplegables de selección */
+    div[data-baseweb="popover"] {
+        max-width: none !important;
+        width: auto !important;
+        min-width: 450px !important;
+    }
 
     /* Contenedor compacto para la foto oficial superior derecha */
     .foto-oficial-container img {
@@ -423,7 +430,6 @@ with tab1:
 # Pestaña 2: Navegar refacciones asociadas y asignar nuevas (Buscador Arriba)
 # ---------------------------------------------------------------------------
 with tab2:
-    # 1. SECCIÓN SUPERIOR: Asignar nueva refacción (A lo ancho con diseño limpio)
     encabezado_panel("Asignar nueva refacción al equipo")
     cat_ref_res = supabase.table("refacciones").select("*").execute()
     catalogo = cat_ref_res.data or []
@@ -437,7 +443,6 @@ with tab2:
                 desc = r.get('DESCRIPCION', 'Sin Descripción')
                 ref_fab = r.get('REFERENCIA', '')
                 
-                # Nuevo diseño limpio sin la palabra "Ítem" y mejor estructurado
                 label = f"[{item_num}]  {desc}" + (f"  |  Ref: {ref_fab}" if ref_fab else "")
                 opciones_catalogo[label] = item_id
 
@@ -448,7 +453,7 @@ with tab2:
             with col_s2:
                 cantidad_req = st.number_input("Cantidad requerida:", min_value=0.01, value=1.0, step=0.1, format="%.2f")
             with col_s3:
-                st.markdown("<div style='height: 27px;'></div>", unsafe_allow_html=True) # Espaciador visual para alinear con el input
+                st.markdown("<div style='height: 27px;'></div>", unsafe_allow_html=True)
                 submit_vin = st.form_submit_button("Vincular refacción")
 
             if submit_vin:
@@ -467,7 +472,6 @@ with tab2:
 
     st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
 
-    # 2. SECCIÓN INFERIOR: Navegador de refacciones asociadas en todo el ancho
     encabezado_panel("Navegador de refacciones asociadas a este equipo")
     if ref_asignadas:
         datos_asociadas_nav = []
