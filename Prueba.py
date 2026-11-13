@@ -201,7 +201,6 @@ linea_seleccionada = st.sidebar.selectbox("Línea", lineas_disponibles, index=li
 if linea_seleccionada != "Todas":
     equipos_filtrados = [eq for eq in equipos_filtrados if str(eq.get('linea', 'Sin Línea')) == linea_seleccionada]
 
-# Ordenar alfabética/numéricamente por Código de Activo para que aparezca el 9100 correctamente
 equipos_filtrados = sorted(
     equipos_filtrados, 
     key=lambda x: str(x.get('Codigo de Activo', ''))
@@ -237,7 +236,7 @@ st.sidebar.markdown(
 )
 
 # ---------------------------------------------------------------------------
-# Encabezado principal con manejo opcional y limpio de la foto superior derecha
+# Encabezado principal con foto principal opcional arriba a la derecha
 # ---------------------------------------------------------------------------
 col_head_txt, col_head_img = st.columns([0.8, 0.2])
 
@@ -266,11 +265,15 @@ with col_head_img:
             except Exception as e:
                 pass
     else:
-        with st.popover("Añadir foto"):
-            st.markdown("<b>Fotografía del equipo</b>", unsafe_allow_html=True)
-            foto_subida = st.camera_input("Tomar foto", key=f"cam_{id_equipo_actual}")
-            if not foto_subida:
-                foto_subida = st.file_uploader("Subir archivo", type=["png", "jpg", "jpeg"], key=f"sub_{id_equipo_actual}")
+        with st.popover("Añadir foto del equipo"):
+            st.markdown("<b>Selecciona o sube la imagen</b>", unsafe_allow_html=True)
+            
+            # Componente de carga idéntico y limpio
+            foto_subida = st.file_uploader(
+                "Selecciona imagen (PNG, JPG)", 
+                type=["png", "jpg", "jpeg"], 
+                key=f"sub_foto_principal_{id_equipo_actual}"
+            )
             
             if foto_subida is not None:
                 if st.button("Guardar foto principal", key=f"btn_save_foto_{id_equipo_actual}"):
