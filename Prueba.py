@@ -234,7 +234,7 @@ partes_sub.append(f"Línea: {equipo_info.get('linea', 'N/A')}")
 st.markdown(f'<div class="subtitulo">{"  |  ".join(partes_sub)}</div>', unsafe_allow_html=True)
 
 query_ref_asig = supabase.table("equipo_refacciones").select(
-    "id, cantidad_requerida, refacciones(id, \"ITEM\", \"DESCRIPCION\", \"REFERENCIA\")"
+    "id, cantidad_requerida, created_at, refacciones(id, \"ITEM\", \"DESCRIPCION\", \"REFERENCIA\")"
 ).eq("registro_id", id_equipo_actual).execute()
 ref_asignadas = query_ref_asig.data or []
 
@@ -255,7 +255,7 @@ tab1, tab2, tab3 = st.tabs([
 ])
 
 # ---------------------------------------------------------------------------
-# Pestaña 1: Ficha, Archivos y Refacciones Asociadas
+# Pestaña 1: Ficha, Archivos y Resumen de Últimos Movimientos
 # ---------------------------------------------------------------------------
 with tab1:
     col_f1, col_f2 = st.columns([1.1, 0.9])
@@ -298,9 +298,54 @@ with tab1:
                     aviso("Selecciona un archivo primero.", "warn", suelto=True)
 
     with col_f2:
-        encabezado_panel("Refacciones asociadas al equipo")
+        # 1. Últimas 3 refacciones ingresadas
+        encabezado_panel("Últimas 3 refacciones ingresadas")
         if ref_asignadas:
-            datos_tabla = []
+            # Ordenar por fecha de creación descendiente si existe el campo, o tomar los últimos
+            ref_ordenadas = sorted(ref_asignadas, key=lambda x: x.get('created_at', '') or '', reverse=True)[:3]
+            datos_ref_recientes = []
+            for item in ref_ordenadas:
+                ref_detalles = item.get("refacciones", {})
+                if ref_detalles:
+                    datos_ref_recientes.append({
+                        "Ítem": ref_detalles.get('ITEM'),
+                        "Descripción": ref_detalles.get('DESCRIPCION'),
+                        "Cant.": item.get("cantidad_requerida")
+                    })
+            if datos_ref_recientes:
+                st.dataframe(datos_ref_recientes, use_container_width=True, hide_index=True)
+            else:
+                aviso("No hay registros recientes de refacciones.")
+        else:
+            aviso("No hay refacciones asociadas.")
+
+        st.markdown("")
+
+        # 2. Últimos 3 reportes de la bitácora
+        encabezado_panel("Últimos 3 reportes de bitácora")
+        if historial:
+            historial_ultimos_3 = sorted(historial, key=lambda x: x.get('created_at', ''), reverse=True)[:3]
+            datos_hist_recientes = []
+            for evento in historial_ultimos_3:
+                datos_hist_recientes.append({
+                    "Fecha": evento.get('created_at', '')[:10],
+                    "Tipo": evento.get('tipo_evento', 'General'),
+                    "Detalle": evento.get('descripcion', '')
+                })
+            st.dataframe(datos_hist_recientes, use_container_width=True, hide_index=True)
+        else:
+            aviso("No hay eventos registrados en la bitácora.")
+
+# ---------------------------------------------------------------------------
+# Pestaña 2: Navegar refacciones asociadas y asignar nuevas
+# ---------------------------------------------------------------------------
+with tab2:
+    col_n1, col_n2 = st.columns([1.3, 0.7])
+
+    with col_n1:
+        encabezado_panel("Navegador de refacciones asociadas a este equipo")
+        if ref_asignadas:
+            datos_asociadas_nav = []
             opciones_desvincular = {}
             for item in ref_asignadas:
                 ref_detalles = item.get("refacciones", {})
@@ -310,52 +355,28 @@ with tab1:
                     
                     label_desc = f"Ítem {item_num} - {desc}"
                     opciones_desvincular[label_desc] = item.get("id")
-                    
-                    datos_tabla.append({
+
+                    datos_asociadas_nav.append({
                         "Ítem": item_num,
                         "Descripción": desc,
-                        "Referencia": ref_detalles.get("REFERENCIA"),
-                        "Cant.": item.get("cantidad_requerida")
-                    })
-            if datos_tabla:
-                st.dataframe(datos_tabla, use_container_width=True, hide_index=True)
-
-                with st.expander("Desvincular refacción"):
-                    id_relacion_a_borrar_label = st.selectbox("Selecciona refacción a retirar:", list(opciones_desvincular.keys()))
-                    id_relacion_a_borrar = opciones_desvincular[id_relacion_a_borrar_label]
-
-                    if st.button("Eliminar asociación", type="secondary"):
-                        try:
-                            supabase.table("equipo_refacciones").delete().eq("id", id_relacion_a_borrar).execute()
-                            st.success("Desvinculado con éxito.")
-                            st.rerun()
-                        except Exception as e:
-                            aviso(f"Error: {e}", "error", suelto=True)
-        else:
-            aviso("No hay refacciones asociadas a este equipo.")
-
-# ---------------------------------------------------------------------------
-# Pestaña 2: Navegar refacciones asociadas y asignar nuevas (Con soporte decimal)
-# ---------------------------------------------------------------------------
-with tab2:
-    col_n1, col_n2 = st.columns([1.3, 0.7])
-
-    with col_n1:
-        encabezado_panel("Navegador de refacciones asociadas a este equipo")
-        if ref_asignadas:
-            datos_asociadas_nav = []
-            for item in ref_asignadas:
-                ref_detalles = item.get("refacciones", {})
-                if ref_detalles:
-                    datos_asociadas_nav.append({
-                        "Ítem": ref_detalles.get('ITEM'),
-                        "Descripción": ref_detalles.get('DESCRIPCION'),
                         "Referencia": ref_detalles.get('REFERENCIA'),
                         "Cantidad Asignada": item.get("cantidad_requerida")
                     })
             
             df_asociadas = pd.DataFrame(datos_asociadas_nav)
             st.dataframe(df_asociadas, use_container_width=True, hide_index=True)
+
+            with st.expander("Desvincular refacción del equipo"):
+                id_relacion_a_borrar_label = st.selectbox("Selecciona refacción a retirar:", list(opciones_desvincular.keys()))
+                id_relacion_a_borrar = opciones_desvincular[id_relacion_a_borrar_label]
+
+                if st.button("Eliminar asociación", type="secondary"):
+                    try:
+                        supabase.table("equipo_refacciones").delete().eq("id", id_relacion_a_borrar).execute()
+                        st.success("Desvinculado con éxito.")
+                        st.rerun()
+                    except Exception as e:
+                        aviso(f"Error: {e}", "error", suelto=True)
         else:
             aviso("Este equipo aún no tiene refacciones asociadas.")
 
@@ -377,7 +398,7 @@ with tab2:
                 ref_elegida_label = st.selectbox("Selecciona del catálogo:", list(opciones_catalogo.keys()))
                 id_ref_elegida = opciones_catalogo[ref_elegida_label]
                 
-                # SOPORTE PARA NÚMEROS FLOTANTES / DECIMALES (ej: 1.5 metros, 0.5 rollos)
+                # Soporte para decimales (asegúrate de que en Supabase la columna sea de tipo numeric/float)
                 cantidad_req = st.number_input("Cantidad requerida:", min_value=0.01, value=1.0, step=0.1, format="%.2f")
 
                 if st.form_submit_button("Vincular refacción"):
