@@ -182,7 +182,7 @@ lineas_disponibles = ["Todas"] + sorted(list(set(str(eq.get('linea', 'Sin Línea
 
 linea_por_defecto = 0
 if equipo_encontrado_por_qr and equipo_encontrado_por_qr.get('linea') in lineas_disponibles:
-    linea_por_defecto = linea_disponibles.index(equipo_encontrado_por_qr.get('linea'))
+    linea_por_defecto = lineas_disponibles.index(equipo_encontrado_por_qr.get('linea'))
 
 linea_seleccionada = st.sidebar.selectbox("Línea", lineas_disponibles, index=linea_por_defecto)
 
@@ -219,7 +219,7 @@ st.sidebar.markdown(
 )
 
 # ---------------------------------------------------------------------------
-# Encabezado principal dividido en columnas para ubicar la foto/botón arriba a la derecha
+# Encabezado principal con manejo opcional y limpio de la foto superior derecha
 # ---------------------------------------------------------------------------
 col_head_txt, col_head_img = st.columns([0.8, 0.2])
 
@@ -240,18 +240,22 @@ with col_head_img:
     foto_url = equipo_info.get('foto_principal_url')
     
     if foto_url:
-        # Si ya tiene foto, se muestra directamente en el cuadro superior derecho
-        st.image(foto_url, caption="Foto del equipo", use_container_width=True)
+        st.image(foto_url, caption="Foto principal", use_container_width=True)
+        if st.button("Cambiar foto", key=f"btn_cambiar_foto_{id_equipo_actual}", type="secondary"):
+            try:
+                supabase.table("equipos").update({"foto_principal_url": None}).eq("id", id_equipo_actual).execute()
+                st.rerun()
+            except Exception as e:
+                pass
     else:
-        # Si no tiene foto, se muestra el botón/cargador para tomarla o subirla
-        with st.container(border=True):
-            st.markdown("<small><b>Foto del equipo</b></small>", unsafe_allow_html=True)
+        with st.popover("Añadir foto"):
+            st.markdown("<b>Fotografía del equipo</b>", unsafe_allow_html=True)
             foto_subida = st.camera_input("Tomar foto", key=f"cam_{id_equipo_actual}")
             if not foto_subida:
-                foto_subida = st.file_uploader("Subir foto", type=["png", "jpg", "jpeg"], key=f"sub_{id_equipo_actual}")
+                foto_subida = st.file_uploader("Subir archivo", type=["png", "jpg", "jpeg"], key=f"sub_{id_equipo_actual}")
             
             if foto_subida is not None:
-                if st.button("Guardar foto"):
+                if st.button("Guardar foto principal", key=f"btn_save_foto_{id_equipo_actual}"):
                     try:
                         file_path = f"{codigo_activo_actual}/foto_principal.jpg"
                         supabase.storage.from_("Archivo equipos").upload(
@@ -261,7 +265,6 @@ with col_head_img:
                         )
                         public_url = supabase.storage.from_("Archivo equipos").get_public_url(file_path)
                         
-                        # Actualizar la columna en la tabla equipos
                         supabase.table("equipos").update({"foto_principal_url": public_url}).eq("id", id_equipo_actual).execute()
                         
                         st.success("Foto guardada con éxito.")
