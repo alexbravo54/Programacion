@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 from supabase import create_client, Client
 
 SUPABASE_URL = "https://tdhvesgqjowgzkwcsofy.supabase.co/"
@@ -338,10 +339,8 @@ with tab2:
     catalogo = cat_ref_res.data or []
 
     if catalogo:
-        # Mostramos una tabla interactiva para que puedan buscar, ordenar y explorar visualmente
         st.markdown("🔍 **Explora el catálogo completo de refacciones:**")
         
-        # Preparamos los datos limpios para la tabla visual
         datos_catalogo_visual = []
         opciones_catalogo = {}
         for r in catalogo:
@@ -359,7 +358,6 @@ with tab2:
                 "Referencia": ref
             })
             
-        # Tabla interactiva nativa de Streamlit (permite buscar escribiendo, ordenar columnas, etc.)
         st.dataframe(datos_catalogo_visual, use_container_width=True, hide_index=True)
         
         st.markdown("---")
@@ -385,23 +383,50 @@ with tab2:
         aviso("El catálogo global de refacciones está vacío.", "warn")
 
 # ---------------------------------------------------------------------------
-# Pestaña 3: BITÁCORA
+# Pestaña 3: BITÁCORA (NAVEGABLE Y EXPORTABLE A EXCEL)
 # ---------------------------------------------------------------------------
 with tab3:
     col_h1, col_h2 = st.columns([2, 1])
 
     with col_h1:
-        encabezado_panel("Historial de eventos")
+        encabezado_panel("Navegador de bitácora e historial de eventos")
+        
         historial_ordenado = sorted(historial, key=lambda x: x.get('created_at', ''), reverse=True)
 
         if historial_ordenado:
+            # Preparamos los datos limpios para la tabla interactiva
+            datos_bitacora = []
             for evento in historial_ordenado:
-                with st.container(border=True):
-                    tipo = evento.get('tipo_evento', 'General')
-                    st.markdown(f"**Tipo:** `{tipo}`  |  *{evento.get('created_at', '')[:19]}*")
-                    st.markdown(f"{evento.get('descripcion', '')}")
-                    if evento.get('tecnico'):
-                        st.caption(f"Registrado por: {evento.get('tecnico')}")
+                datos_bitacora.append({
+                    "Fecha y Hora": evento.get('created_at', '')[:19],
+                    "Tipo de Evento": evento.get('tipo_evento', 'General'),
+                    "Descripción": evento.get('descripcion', ''),
+                    "Técnico Responsable": evento.get('tecnico', 'No especificado')
+                })
+            
+            df_bitacora = pd.DataFrame(datos_bitacora)
+            
+            # Tabla interactiva con buscador integrado de Streamlit
+            st.dataframe(df_bitacora, use_container_width=True, hide_index=True)
+            
+            # --- BOTÓN DE EXPORTACIÓN A EXCEL ---
+            @st.cache_data
+            def convertir_df_a_excel(df):
+                from io import BytesIO
+                output = BytesIO()
+                with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                    df.to_excel(writer, index=False, sheet_name='Bitácora')
+                processed_data = output.getvalue()
+                return processed_data
+
+            excel_data = convertir_df_a_excel(df_bitacora)
+            
+            st.download_button(
+                label="📥 Descargar Bitácora en Excel (.xlsx)",
+                data=excel_data,
+                file_name=f"Bitacora_{codigo_activo_actual}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
         else:
             aviso("No hay eventos registrados en la bitácora de este equipo.")
 
