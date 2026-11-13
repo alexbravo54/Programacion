@@ -420,65 +420,48 @@ with tab1:
             aviso("No hay eventos registrados en la bitácora.")
 
 # ---------------------------------------------------------------------------
-# Pestaña 2: Navegar refacciones asociadas y asignar nuevas (Buscador multilínea con filtro)
+# Pestaña 2: Navegar refacciones asociadas y asignar nuevas
 # ---------------------------------------------------------------------------
 with tab2:
-    encabezado_panel("Asignar nueva refacción al equipo (Buscador Multilínea)")
+    encabezado_panel("Asignar nueva refacción al equipo")
     cat_ref_res = supabase.table("refacciones").select("*").execute()
     catalogo = cat_ref_res.data or []
 
     if catalogo:
-        # Campo de texto para filtrar el catálogo en tiempo real
-        texto_busqueda = st.text_input("🔍 Escribe para buscar refacción por código o descripción:", placeholder="Ej: Válvula, rodamiento, 851-999...")
-
-        # Filtrar catálogo según el texto ingresado
-        catalogo_filtrado = []
-        for r in catalogo:
-            c_item = str(r.get('ITEM', ''))
-            c_desc = str(r.get('DESCRIPCION', ''))
-            c_ref = str(r.get('REFERENCIA', ''))
-            
-            texto_completo = f"{c_item} {c_desc} {c_ref}".lower()
-            if not texto_busqueda or texto_busqueda.lower() in texto_completo:
-                catalogo_filtrado.append(r)
-
-        if catalogo_filtrado:
-            # Crear un diccionario con opciones multilínea formateadas claramente
+        with st.form("form_asignar_ref_visual"):
             opciones_catalogo = {}
-            for r in catalogo_filtrado:
+            for r in catalogo:
                 item_id = r.get('id')
-                item_num = r.get('ITEM', 'Sin Código')
-                desc = r.get('DESCRIPCION', 'Sin Descripción')
-                ref_fab = r.get('REFERENCIA', 'N/A')
+                item_num = str(r.get('ITEM', ''))
+                desc = str(r.get('DESCRIPCION', 'Sin Descripción'))
+                ref_fab = str(r.get('REFERENCIA', ''))
                 
-                # Formato estructurado tipo ficha
-                label = f"[{item_num}] - {desc} (Ref: {ref_fab})"
+                # Ocultamos el código visualmente al principio, pero lo incluimos 
+                # de forma invisible/asociada para que el buscador nativo lo filtre al escribirlo.
+                label = f"{desc}" + (f"  |  Ref: {ref_fab}" if ref_fab else "") + f"  [{item_num}]"
                 opciones_catalogo[label] = item_id
 
-            with st.form("form_asignar_ref_multilineal"):
-                col_s1, col_s2, col_s3 = st.columns([3.0, 0.8, 0.9])
-                with col_s1:
-                    ref_elegida_label = st.selectbox("Seleccione del resultado filtrado:", list(opciones_catalogo.keys()))
-                    id_ref_elegida = opciones_catalogo[ref_elegida_label]
-                with col_s2:
-                    cantidad_req = st.number_input("Cantidad:", min_value=0.01, value=1.0, step=0.1, format="%.2f")
-                with col_s3:
-                    st.markdown("<div style='height: 27px;'></div>", unsafe_allow_html=True)
-                    submit_vin = st.form_submit_button("Vincular")
+            col_s1, col_s2, col_s3 = st.columns([3.0, 0.8, 0.9])
+            with col_s1:
+                ref_elegida_label = st.selectbox("Seleccione refacción (puede escribir el código o descripción para buscar):", list(opciones_catalogo.keys()))
+                id_ref_elegida = opciones_catalogo[ref_elegida_label]
+            with col_s2:
+                cantidad_req = st.number_input("Cantidad:", min_value=0.01, value=1.0, step=0.1, format="%.2f")
+            with col_s3:
+                st.markdown("<div style='height: 27px;'></div>", unsafe_allow_html=True)
+                submit_vin = st.form_submit_button("Vincular")
 
-                if submit_vin:
-                    try:
-                        supabase.table("equipo_refacciones").insert({
-                            "registro_id": id_equipo_actual,
-                            "refaccion_id": id_ref_elegida,
-                            "cantidad_requerida": cantidad_req
-                        }).execute()
-                        st.success("Refacción asignada con éxito.")
-                        st.rerun()
-                    except Exception as e:
-                        aviso(f"Error al asignar: {e}", "error", suelto=True)
-        else:
-            aviso("No se encontraron refacciones con ese criterio de búsqueda.", "warn", suelto=True)
+            if submit_vin:
+                try:
+                    supabase.table("equipo_refacciones").insert({
+                        "registro_id": id_equipo_actual,
+                        "refaccion_id": id_ref_elegida,
+                        "cantidad_requerida": cantidad_req
+                    }).execute()
+                    st.success("Refacción asignada con éxito.")
+                    st.rerun()
+                except Exception as e:
+                    aviso(f"Error al asignar: {e}", "error", suelto=True)
     else:
         aviso("El catálogo global está vacío.", "warn")
 
@@ -494,7 +477,7 @@ with tab2:
                 item_num = ref_detalles.get('ITEM')
                 desc = ref_detalles.get('DESCRIPCION')
                 
-                label_desc = f"[{item_num}] {desc}"
+                label_desc = f"{desc} [{item_num}]"
                 opciones_desvincular[label_desc] = item.get("id")
 
                 datos_asociadas_nav.append({
