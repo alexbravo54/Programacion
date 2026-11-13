@@ -18,9 +18,6 @@ st.set_page_config(
     layout="wide"
 )
 
-# ---------------------------------------------------------------------------
-# Estilo corporativo y optimización visual
-# ---------------------------------------------------------------------------
 st.markdown("""
 <style>
     :root {
@@ -35,13 +32,11 @@ st.markdown("""
         --side-txt: #9AA7BD;
     }
 
-    /* Base */
     .stApp { background: var(--bg); }
     .block-container { padding-top: 2rem; max-width: 1450px; }
     #MainMenu, footer, [data-testid="stToolbar"], [data-testid="stDeployButton"] { visibility: hidden; }
     header[data-testid="stHeader"] { background: transparent; }
 
-    /* Barra lateral */
     [data-testid="stSidebar"] { background: var(--navy); border-right: 1px solid var(--navy); }
     [data-testid="stSidebar"] label p {
         color: var(--side-txt) !important;
@@ -69,12 +64,10 @@ st.markdown("""
     .sb-activo small { display: block; color: var(--side-txt); font-size: 11px; }
     .sb-activo b { color: #FFFFFF; font-size: 15px; font-weight: 500; }
 
-    /* Encabezado de la página */
     .crumb { font-size: 12px; color: var(--txt-2); margin-bottom: 6px; }
     .titulo { font-size: 26px; font-weight: 500; color: var(--navy); margin: 0 0 4px 0; }
     .subtitulo { font-size: 13px; color: #3B465A; margin-bottom: 22px; }
 
-    /* Contenedor compacto para la foto oficial superior derecha */
     .foto-oficial-container img {
         max-height: 160px;
         object-fit: contain;
@@ -82,7 +75,6 @@ st.markdown("""
         background: #FFFFFF;
     }
 
-    /* Indicadores */
     [data-testid="stMetric"] {
         background: #FFFFFF; border: 1px solid var(--line);
         border-top: 3px solid var(--navy); padding: 12px 14px;
@@ -90,14 +82,12 @@ st.markdown("""
     [data-testid="stMetricLabel"] p { font-size: 12px; color: var(--txt-2); }
     [data-testid="stMetricValue"] { font-size: 22px; font-weight: 500; color: var(--navy); }
 
-    /* Pestañas */
     div[data-baseweb="tab-list"] { gap: 28px; margin-bottom: 10px; }
     button[data-baseweb="tab"] p { font-size: 13px; color: var(--txt-2); }
     button[data-baseweb="tab"][aria-selected="true"] p { color: var(--navy); font-weight: 500; }
     div[data-baseweb="tab-highlight"] { background-color: var(--navy); height: 3px; }
     div[data-baseweb="tab-border"] { background-color: #CBD2DC; }
 
-    /* Paneles y avisos */
     .ph {
         padding: 10px 14px; font-size: 13px; font-weight: 500; color: var(--navy);
         background: var(--panel-head); border: 1px solid var(--line);
@@ -113,7 +103,6 @@ st.markdown("""
     .aviso.error { border-left: 3px solid #9B1C1C; color: var(--txt); }
     .aviso.suelto { border-top: 1px solid var(--line); }
 
-    /* Controles */
     div.stButton > button,
     [data-testid="stFormSubmitButton"] > button {
         width: 100%; border-radius: 2px;
@@ -144,9 +133,6 @@ def encabezado_panel(texto):
     st.markdown(f'<div class="ph">{texto}</div>', unsafe_allow_html=True)
 
 
-# ---------------------------------------------------------------------------
-# Carga de TODOS los equipos sin límite de paginación
-# ---------------------------------------------------------------------------
 def cargar_todos_los_equipos():
     todos_los_datos = []
     chunk_size = 1000
@@ -159,6 +145,7 @@ def cargar_todos_los_equipos():
             break
         offset += chunk_size
     return todos_los_datos
+
 
 equipos = cargar_todos_los_equipos()
 
@@ -177,9 +164,6 @@ if id_equipo_en_url is not None:
     except ValueError:
         pass
 
-# ---------------------------------------------------------------------------
-# Barra lateral
-# ---------------------------------------------------------------------------
 st.sidebar.markdown(
     '<p class="sb-title">GESTIÓN DE ACTIVOS</p>'
     '<p class="sb-sub">Búsqueda y filtros</p>',
@@ -243,9 +227,6 @@ st.sidebar.markdown(
     unsafe_allow_html=True
 )
 
-# ---------------------------------------------------------------------------
-# Encabezado principal
-# ---------------------------------------------------------------------------
 col_head_txt, col_head_img = st.columns([0.85, 0.15])
 
 with col_head_txt:
@@ -318,22 +299,18 @@ tab1, tab2, tab3 = st.tabs([
 if "file_uploader_key" not in st.session_state:
     st.session_state["file_uploader_key"] = 0
 
-# ---------------------------------------------------------------------------
-# Pestaña 1: Ficha, Archivos Múltiples y Resumen
-# ---------------------------------------------------------------------------
 with tab1:
     col_f1, col_f2 = st.columns([1.1, 0.9])
 
     with col_f1:
         encabezado_panel("Planos, fotografías y documentos del activo")
 
-        # Buscador de archivos del equipo y botón de subida integrados
         col_b_in, col_b_btn = st.columns([2.2, 1.8])
         with col_b_in:
-            filtro_archivos = st.text_input("🔍 Buscar archivo por nombre:", placeholder="Escribe para filtrar...", key=f"filtro_arc_{id_equipo_actual}")
+            filtro_archivos = st.text_input("Buscar archivo por nombre:", placeholder="Escribe para filtrar...", key=f"filtro_arc_{id_equipo_actual}")
         with col_b_btn:
             st.markdown("<div style='height: 27px;'></div>", unsafe_allow_html=True)
-            with st.popover("➕ Subir nuevo archivo"):
+            with st.popover("Subir nuevo archivo"):
                 st.markdown("<b>Selecciona archivo o PDF</b>", unsafe_allow_html=True)
                 archivo_subido = st.file_uploader(
                     "Selecciona imagen o PDF", 
@@ -383,7 +360,7 @@ with tab1:
                     url_arc = arc.get('archivo_url')
                     
                     with st.container(border=True):
-                        st.markdown(f'📄 Archivo: <a href="{url_arc}" target="_blank"><b>{nombre_arc}</b></a>', unsafe_allow_html=True)
+                        st.markdown(f'Archivo: <a href="{url_arc}" target="_blank"><b>{nombre_arc}</b></a>', unsafe_allow_html=True)
             else:
                 aviso("No se encontraron archivos con ese filtro de búsqueda.")
         else:
@@ -425,11 +402,7 @@ with tab1:
         else:
             aviso("No hay eventos registrados en la bitácora.")
 
-# ---------------------------------------------------------------------------
-# Pestaña 2: Asignación (Arriba) y Navegador de Asociadas (Abajo)
-# ---------------------------------------------------------------------------
 with tab2:
-    # 1. SECCIÓN SUPERIOR: Asignar nueva refacción
     encabezado_panel("Asignar nueva refacción al equipo")
     cat_ref_res = supabase.table("refacciones").select("*").execute()
     catalogo = cat_ref_res.data or []
@@ -472,7 +445,6 @@ with tab2:
 
     st.markdown("<div style='margin-top: 25px;'></div>", unsafe_allow_html=True)
 
-    # 2. SECCIÓN INFERIOR: Navegador de refacciones asociadas
     encabezado_panel("Navegador de refacciones asociadas a este equipo")
     if ref_asignadas:
         datos_asociadas_nav = []
@@ -513,9 +485,6 @@ with tab2:
     else:
         aviso("Este equipo aún no tiene refacciones asociadas.")
 
-# ---------------------------------------------------------------------------
-# Pestaña 3: Bitácora (Navegable y Exportable a Excel)
-# ---------------------------------------------------------------------------
 with tab3:
     col_h1, col_h2 = st.columns([1.3, 0.7])
 
@@ -550,7 +519,7 @@ with tab3:
             excel_data = convertir_df_a_excel(df_bitacora)
             
             st.download_button(
-                label="📥 Descargar Bitácora en Excel (.xlsx)",
+                label="Descargar Bitácora en Excel (.xlsx)",
                 data=excel_data,
                 file_name=f"Bitacora_{codigo_activo_actual}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
