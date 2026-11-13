@@ -257,7 +257,6 @@ tab1, tab2, tab3 = st.tabs([
     "Bitácora de mantenimiento"
 ])
 
-# Inicializar estado para limpiar el uploader si no existe
 if "file_uploader_key" not in st.session_state:
     st.session_state["file_uploader_key"] = 0
 
@@ -268,40 +267,31 @@ with tab1:
     col_f1, col_f2 = st.columns([1.1, 0.9])
 
     with col_f1:
-        encabezado_panel("Galería de planos, fotos y documentos del activo")
+        encabezado_panel("Planos, fotografías y documentos del activo")
 
         if lista_archivos:
             aviso(f"Este equipo cuenta con {len(lista_archivos)} archivo(s) adjunto(s).", "ok")
             
+            # Listado en conjunto y previsualización de fotos del equipo
             for arc in lista_archivos:
                 nombre_arc = arc.get('nombre_archivo', 'Archivo')
                 url_arc = arc.get('archivo_url')
-                id_arc = arc.get('id')
                 
                 with st.container(border=True):
                     st.markdown(f"Archivo: **{nombre_arc}**")
                     
                     if any(url_arc.lower().endswith(ext) for ext in ['.png', '.jpg', '.jpeg']):
-                        st.image(url_arc, caption=nombre_arc, use_container_width=True)
+                        st.image(url_arc, caption=f"Fotografía del equipo: {nombre_arc}", use_container_width=True)
                         st.markdown(f"[Abrir imagen en pestaña completa]({url_arc})")
                     elif url_arc.lower().endswith('.pdf'):
-                        st.info("Archivo PDF disponible para visualización o descarga.")
+                        st.info("Archivo PDF disponible para visualización.")
                         st.markdown(f"[Hacer clic aquí para abrir el PDF en el navegador]({url_arc})")
                     else:
                         st.markdown(f"[Descargar archivo]({url_arc})")
-                    
-                    if st.button("Eliminar este archivo", key=f"del_arc_{id_arc}", type="secondary"):
-                        try:
-                            supabase.table("archivos_equipos").delete().eq("id", id_arc).execute()
-                            st.success("Archivo eliminado.")
-                            st.rerun()
-                        except Exception as e:
-                            aviso(f"Error al eliminar: {e}", "error", suelto=True)
         else:
             aviso("Este equipo no tiene planos o imágenes adjuntas.")
 
-        with st.expander("Subir nuevo plano o foto (Múltiples archivos)"):
-            # Usar la clave dinámica en st.session_state para permitir limpiar el uploader
+        with st.expander("Subir nuevo plano o fotografía"):
             archivo_subido = st.file_uploader(
                 "Selecciona imagen o PDF", 
                 type=["png", "jpg", "jpeg", "pdf"], 
@@ -330,7 +320,6 @@ with tab1:
                         }).execute()
 
                         st.success("Archivo subido y asociado correctamente.")
-                        # Incrementar la clave para limpiar el file_uploader automáticamente
                         st.session_state["file_uploader_key"] += 1
                         st.rerun()
                     except Exception as e:
