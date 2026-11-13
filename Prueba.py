@@ -19,7 +19,7 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------------------------
-# Estilo corporativo y optimización visual
+# Estilo corporativo y optimización visual (Incluyendo control de tamaño de foto)
 # ---------------------------------------------------------------------------
 st.markdown("""
 <style>
@@ -73,6 +73,14 @@ st.markdown("""
     .crumb { font-size: 12px; color: var(--txt-2); margin-bottom: 6px; }
     .titulo { font-size: 26px; font-weight: 500; color: var(--navy); margin: 0 0 4px 0; }
     .subtitulo { font-size: 13px; color: #3B465A; margin-bottom: 22px; }
+
+    /* Contenedor compacto para la foto oficial superior derecha */
+    .foto-oficial-container img {
+        max-height: 160px;
+        object-fit: contain;
+        border: 1px solid var(--line);
+        background: #FFFFFF;
+    }
 
     /* Indicadores */
     [data-testid="stMetric"] {
@@ -236,9 +244,9 @@ st.sidebar.markdown(
 )
 
 # ---------------------------------------------------------------------------
-# Encabezado principal con foto principal fija (sin opción de cambio)
+# Encabezado principal optimizado con proporciones estables (0.85 / 0.15)
 # ---------------------------------------------------------------------------
-col_head_txt, col_head_img = st.columns([0.8, 0.2])
+col_head_txt, col_head_img = st.columns([0.85, 0.15])
 
 with col_head_txt:
     st.markdown(
@@ -256,10 +264,12 @@ with col_head_txt:
 with col_head_img:
     foto_url = equipo_info.get('foto_principal_url')
     
+    # Contenedor con clase CSS para limitar la altura y mantener el orden del diseño
+    st.markdown('<div class="foto-oficial-container">', unsafe_allow_html=True)
     if foto_url:
-        st.image(foto_url, caption="Foto oficial del activo", use_container_width=True)
+        st.image(foto_url, caption="Foto oficial", use_container_width=True)
     else:
-        with st.popover("Añadir foto del equipo"):
+        with st.popover("Añadir foto"):
             st.markdown("<b>Selecciona o sube la imagen</b>", unsafe_allow_html=True)
             
             foto_subida = st.file_uploader(
@@ -285,6 +295,7 @@ with col_head_img:
                         st.rerun()
                     except Exception as e:
                         aviso(f"Error: {e}", "error", suelto=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
 query_ref_asig = supabase.table("equipo_refacciones").select(
     "id, cantidad_requerida, created_at, refacciones(id, \"ITEM\", \"DESCRIPCION\", \"REFERENCIA\")"
@@ -529,7 +540,7 @@ with tab3:
             excel_data = convertir_df_a_excel(df_bitacora)
             
             st.download_button(
-                label="Descargar Bitácora en Excel (.xlsx)",
+                label="📥 Descargar Bitácora en Excel (.xlsx)",
                 data=excel_data,
                 file_name=f"Bitacora_{codigo_activo_actual}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
