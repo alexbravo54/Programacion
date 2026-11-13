@@ -327,54 +327,67 @@ with tab1:
     with col_f1:
         encabezado_panel("Planos, fotografías y documentos del activo")
 
-        if lista_archivos:
-            aviso(f"Este equipo cuenta con {len(lista_archivos)} archivo(s) adjunto(s).", "ok")
-            
-            for arc in lista_archivos:
-                nombre_arc = arc.get('nombre_archivo', 'Archivo')
-                url_arc = arc.get('archivo_url')
+        # Buscador de archivos del equipo y botón de subida integrados
+        col_b_in, col_b_btn = st.columns([2.2, 1.8])
+        with col_b_in:
+            filtro_archivos = st.text_input("🔍 Buscar archivo por nombre:", placeholder="Escribe para filtrar...", key=f"filtro_arc_{id_equipo_actual}")
+        with col_b_btn:
+            st.markdown("<div style='height: 27px;'></div>", unsafe_allow_html=True)
+            with st.popover("➕ Subir nuevo archivo"):
+                st.markdown("<b>Selecciona archivo o PDF</b>", unsafe_allow_html=True)
+                archivo_subido = st.file_uploader(
+                    "Selecciona imagen o PDF", 
+                    type=["png", "jpg", "jpeg", "pdf"], 
+                    key=f"multi_uploader_{st.session_state['file_uploader_key']}"
+                )
                 
-                with st.container(border=True):
-                    # Enlace directo al archivo abriéndose en pestaña nueva (target="_blank"), sin texto sobrante
-                    st.markdown(f'📄 Archivo: <a href="{url_arc}" target="_blank"><b>{nombre_arc}</b></a>', unsafe_allow_html=True)
+                if st.button("Guardar archivo en el equipo"):
+                    if archivo_subido is not None:
+                        try:
+                            file_path = f"{codigo_activo_actual}/{archivo_subido.name}"
+                            content_type = "application/pdf" if archivo_subido.name.lower().endswith('.pdf') else "image/jpeg"
+
+                            supabase.storage.from_("Archivo equipos").upload(
+                                file_path,
+                                archivo_subido.getvalue(),
+                                file_options={"upsert": "true", "content-type": content_type}
+                            )
+
+                            public_url = supabase.storage.from_("Archivo equipos").get_public_url(file_path)
+
+                            supabase.table("archivos_equipos").insert({
+                                "registro_id": id_equipo_actual,
+                                "nombre_archivo": archivo_subido.name,
+                                "archivo_url": public_url
+                            }).execute()
+
+                            st.success("Archivo subido y asociado correctamente.")
+                            st.session_state["file_uploader_key"] += 1
+                            st.rerun()
+                        except Exception as e:
+                            aviso(f"Error al subir el archivo: {e}", "error", suelto=True)
+                    else:
+                        aviso("Selecciona un archivo primero.", "warn", suelto=True)
+
+        st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
+
+        if lista_archivos:
+            archivos_filtrados = [
+                arc for arc in lista_archivos 
+                if not filtro_archivos or filtro_archivos.lower() in str(arc.get('nombre_archivo', '')).lower()
+            ]
+
+            if archivos_filtrados:
+                for arc in archivos_filtrados:
+                    nombre_arc = arc.get('nombre_archivo', 'Archivo')
+                    url_arc = arc.get('archivo_url')
+                    
+                    with st.container(border=True):
+                        st.markdown(f'📄 Archivo: <a href="{url_arc}" target="_blank"><b>{nombre_arc}</b></a>', unsafe_allow_html=True)
+            else:
+                aviso("No se encontraron archivos con ese filtro de búsqueda.")
         else:
             aviso("Este equipo no tiene planos o imágenes adjuntas.")
-
-        with st.expander("Subir nuevo plano o fotografía"):
-            archivo_subido = st.file_uploader(
-                "Selecciona imagen o PDF", 
-                type=["png", "jpg", "jpeg", "pdf"], 
-                key=f"multi_uploader_{st.session_state['file_uploader_key']}"
-            )
-            
-            if st.button("Guardar archivo en el equipo"):
-                if archivo_subido is not None:
-                    try:
-                        file_path = f"{codigo_activo_actual}/{archivo_subido.name}"
-
-                        content_type = "application/pdf" if archivo_subido.name.lower().endswith('.pdf') else "image/jpeg"
-
-                        supabase.storage.from_("Archivo equipos").upload(
-                            file_path,
-                            archivo_subido.getvalue(),
-                            file_options={"upsert": "true", "content-type": content_type}
-                        )
-
-                        public_url = supabase.storage.from_("Archivo equipos").get_public_url(file_path)
-
-                        supabase.table("archivos_equipos").insert({
-                            "registro_id": id_equipo_actual,
-                            "nombre_archivo": archivo_subido.name,
-                            "archivo_url": public_url
-                        }).execute()
-
-                        st.success("Archivo subido y asociado correctamente.")
-                        st.session_state["file_uploader_key"] += 1
-                        st.rerun()
-                    except Exception as e:
-                        aviso(f"Error al subir el archivo: {e}", "error", suelto=True)
-                else:
-                    aviso("Selecciona un archivo primero.", "warn", suelto=True)
 
     with col_f2:
         encabezado_panel("Últimas 3 refacciones ingresadas")
