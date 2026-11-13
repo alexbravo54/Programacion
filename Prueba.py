@@ -19,7 +19,7 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------------------------
-# Estilo corporativo
+# Estilo corporativo y optimización visual
 # ---------------------------------------------------------------------------
 st.markdown("""
 <style>
@@ -37,7 +37,7 @@ st.markdown("""
 
     /* Base */
     .stApp { background: var(--bg); }
-    .block-container { padding-top: 2rem; max-width: 1400px; }
+    .block-container { padding-top: 2rem; max-width: 1450px; }
     #MainMenu, footer, [data-testid="stToolbar"], [data-testid="stDeployButton"] { visibility: hidden; }
     header[data-testid="stHeader"] { background: transparent; }
 
@@ -72,7 +72,7 @@ st.markdown("""
     /* Encabezado de la página */
     .crumb { font-size: 12px; color: var(--txt-2); margin-bottom: 6px; }
     .titulo { font-size: 26px; font-weight: 500; color: var(--navy); margin: 0 0 4px 0; }
-    .subtitulo { font-size: 13px; color: #3B465A; margin-bottom: 18px; }
+    .subtitulo { font-size: 13px; color: #3B465A; margin-bottom: 22px; }
 
     /* Indicadores */
     [data-testid="stMetric"] {
@@ -83,7 +83,7 @@ st.markdown("""
     [data-testid="stMetricValue"] { font-size: 22px; font-weight: 500; color: var(--navy); }
 
     /* Pestañas */
-    div[data-baseweb="tab-list"] { gap: 26px; }
+    div[data-baseweb="tab-list"] { gap: 28px; margin-bottom: 10px; }
     button[data-baseweb="tab"] p { font-size: 13px; color: var(--txt-2); }
     button[data-baseweb="tab"][aria-selected="true"] p { color: var(--navy); font-weight: 500; }
     div[data-baseweb="tab-highlight"] { background-color: var(--navy); height: 3px; }
@@ -93,7 +93,7 @@ st.markdown("""
     .ph {
         padding: 10px 14px; font-size: 13px; font-weight: 500; color: var(--navy);
         background: var(--panel-head); border: 1px solid var(--line);
-        margin: 6px 0 0 0;
+        margin: 0 0 0 0;
     }
     .aviso {
         padding: 14px; font-size: 13px; color: var(--txt-2);
@@ -122,7 +122,7 @@ st.markdown("""
         background: #FFFFFF; border: 1px solid var(--line); border-radius: 0;
     }
     [data-testid="stVerticalBlockBorderWrapper"] { border-radius: 0; }
-    h3 { font-size: 16px !important; font-weight: 500 !important; color: var(--navy); }
+    h3 { font-size: 15px !important; font-weight: 500 !important; color: var(--navy); margin-top: 0px !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -219,7 +219,7 @@ st.sidebar.markdown(
 )
 
 # ---------------------------------------------------------------------------
-# Encabezado
+# Encabezado principal limpio
 # ---------------------------------------------------------------------------
 st.markdown(
     f'<div class="crumb">Activos / Equipos / {codigo_activo_actual}</div>'
@@ -255,10 +255,10 @@ tab1, tab2, tab3 = st.tabs([
 ])
 
 # ---------------------------------------------------------------------------
-# Pestaña 1
+# Pestaña 1: Ficha, Archivos y Refacciones Asociadas (Distribución 60/40 más espaciosa)
 # ---------------------------------------------------------------------------
 with tab1:
-    col_f1, col_f2 = st.columns([1, 1])
+    col_f1, col_f2 = st.columns([1.1, 0.9])
 
     with col_f1:
         encabezado_panel("Archivos y planos del activo")
@@ -301,22 +301,28 @@ with tab1:
         encabezado_panel("Refacciones asociadas al equipo")
         if ref_asignadas:
             datos_tabla = []
+            opciones_desvincular = {}
             for item in ref_asignadas:
                 ref_detalles = item.get("refacciones", {})
                 if ref_detalles:
+                    item_num = ref_detalles.get('ITEM')
+                    desc = ref_detalles.get('DESCRIPCION')
+                    
+                    # Ocultamos completamente el ID de relación y dejamos una etiqueta clara
+                    label_desc = f"Ítem {item_num} - {desc}"
+                    opciones_desvincular[label_desc] = item.get("id")
+                    
                     datos_tabla.append({
-                        "ID Relación": item.get("id"),
-                        "Ítem": ref_detalles.get("ITEM"),
-                        "Descripción": ref_detalles.get("DESCRIPCION"),
+                        "Ítem": item_num,
+                        "Descripción": desc,
                         "Referencia": ref_detalles.get("REFERENCIA"),
-                        "Cantidad Req.": item.get("cantidad_requerida")
+                        "Cant.": item.get("cantidad_requerida")
                     })
             if datos_tabla:
                 st.dataframe(datos_tabla, use_container_width=True, hide_index=True)
 
                 with st.expander("Desvincular refacción"):
-                    opciones_desvincular = {f"Ítem {d['Ítem']} - {d['Descripción']}": d['ID Relación'] for d in datos_tabla}
-                    id_relacion_a_borrar_label = st.selectbox("Selecciona:", list(opciones_desvincular.keys()))
+                    id_relacion_a_borrar_label = st.selectbox("Selecciona refacción a retirar:", list(opciones_desvincular.keys()))
                     id_relacion_a_borrar = opciones_desvincular[id_relacion_a_borrar_label]
 
                     if st.button("Eliminar asociación", type="secondary"):
@@ -327,10 +333,10 @@ with tab1:
                         except Exception as e:
                             aviso(f"Error: {e}", "error", suelto=True)
         else:
-            aviso("No hay refacciones asociadas.")
+            aviso("No hay refacciones asociadas a este equipo.")
 
 # ---------------------------------------------------------------------------
-# Pestaña 2: NAVEGADOR Y ASIGNADOR VISUAL DE REFACCIONES
+# Pestaña 2: Navegador y Asignador de Refacciones
 # ---------------------------------------------------------------------------
 with tab2:
     encabezado_panel("Catálogo general para navegar y asignar refacciones")
@@ -383,10 +389,10 @@ with tab2:
         aviso("El catálogo global de refacciones está vacío.", "warn")
 
 # ---------------------------------------------------------------------------
-# Pestaña 3: BITÁCORA (NAVEGABLE Y EXPORTABLE A EXCEL)
+# Pestaña 3: Bitácora (Navegable y Exportable a Excel con mejor proporción)
 # ---------------------------------------------------------------------------
 with tab3:
-    col_h1, col_h2 = st.columns([2, 1])
+    col_h1, col_h2 = st.columns([1.3, 0.7])
 
     with col_h1:
         encabezado_panel("Navegador de bitácora e historial de eventos")
@@ -394,7 +400,6 @@ with tab3:
         historial_ordenado = sorted(historial, key=lambda x: x.get('created_at', ''), reverse=True)
 
         if historial_ordenado:
-            # Preparamos los datos limpios para la tabla interactiva
             datos_bitacora = []
             for evento in historial_ordenado:
                 datos_bitacora.append({
@@ -406,10 +411,8 @@ with tab3:
             
             df_bitacora = pd.DataFrame(datos_bitacora)
             
-            # Tabla interactiva con buscador integrado de Streamlit
             st.dataframe(df_bitacora, use_container_width=True, hide_index=True)
             
-            # --- BOTÓN DE EXPORTACIÓN A EXCEL ---
             @st.cache_data
             def convertir_df_a_excel(df):
                 from io import BytesIO
