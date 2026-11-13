@@ -257,6 +257,10 @@ tab1, tab2, tab3 = st.tabs([
     "Bitácora de mantenimiento"
 ])
 
+# Inicializar estado para limpiar el uploader si no existe
+if "file_uploader_key" not in st.session_state:
+    st.session_state["file_uploader_key"] = 0
+
 # ---------------------------------------------------------------------------
 # Pestaña 1: Ficha, Archivos Múltiples y Resumen
 # ---------------------------------------------------------------------------
@@ -297,7 +301,13 @@ with tab1:
             aviso("Este equipo no tiene planos o imágenes adjuntas.")
 
         with st.expander("Subir nuevo plano o foto (Múltiples archivos)"):
-            archivo_subido = st.file_uploader("Selecciona imagen o PDF", type=["png", "jpg", "jpeg", "pdf"], key="multi_uploader")
+            # Usar la clave dinámica en st.session_state para permitir limpiar el uploader
+            archivo_subido = st.file_uploader(
+                "Selecciona imagen o PDF", 
+                type=["png", "jpg", "jpeg", "pdf"], 
+                key=f"multi_uploader_{st.session_state['file_uploader_key']}"
+            )
+            
             if st.button("Guardar archivo en el equipo"):
                 if archivo_subido is not None:
                     try:
@@ -320,6 +330,8 @@ with tab1:
                         }).execute()
 
                         st.success("Archivo subido y asociado correctamente.")
+                        # Incrementar la clave para limpiar el file_uploader automáticamente
+                        st.session_state["file_uploader_key"] += 1
                         st.rerun()
                     except Exception as e:
                         aviso(f"Error al subir el archivo: {e}", "error", suelto=True)
