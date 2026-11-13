@@ -145,7 +145,6 @@ if not equipos:
     aviso("No hay equipos registrados en la tabla 'equipos'.", "warn", suelto=True)
     st.stop()
 
-# Capturar parámetro de la URL (?equipo=ID)
 query_params = st.query_params
 id_equipo_en_url = query_params.get("equipo", None)
 
@@ -250,7 +249,7 @@ st.markdown("")
 
 tab1, tab2, tab3 = st.tabs([
     "Ficha, planos y refacciones",
-    "Asignar refacción",
+    "Navegar y asignar refacción",
     "Bitácora de mantenimiento"
 ])
 
@@ -330,19 +329,46 @@ with tab1:
             aviso("No hay refacciones asociadas.")
 
 # ---------------------------------------------------------------------------
-# Pestaña 2
+# Pestaña 2: NAVEGADOR Y ASIGNADOR VISUAL DE REFACCIONES
 # ---------------------------------------------------------------------------
 with tab2:
-    encabezado_panel("Vincular refacción del catálogo global")
-    cat_ref_res = supabase.table("refacciones").select("id, \"ITEM\", \"DESCRIPCION\"").execute()
-    catalogo = cat_ref_res.data
+    encabezado_panel("Catálogo general para navegar y asignar refacciones")
+    
+    cat_ref_res = supabase.table("refacciones").select("*").execute()
+    catalogo = cat_ref_res.data or []
 
     if catalogo:
-        with st.form("form_asignar_ref"):
-            opciones_catalogo = {f"{r['ITEM']} - {r['DESCRIPCION']}": r['id'] for r in catalogo}
-            ref_elegida_label = st.selectbox("Selecciona del catálogo global:", list(opciones_catalogo.keys()))
+        # Mostramos una tabla interactiva para que puedan buscar, ordenar y explorar visualmente
+        st.markdown("🔍 **Explora el catálogo completo de refacciones:**")
+        
+        # Preparamos los datos limpios para la tabla visual
+        datos_catalogo_visual = []
+        opciones_catalogo = {}
+        for r in catalogo:
+            item_id = r.get('id')
+            item_num = r.get('ITEM', 'Sin Ítem')
+            desc = r.get('DESCRIPCION', 'Sin Descripción')
+            ref = r.get('REFERENCIA', 'Sin Referencia')
+            
+            label = f"Ítem: {item_num} - {desc} (Ref: {ref})"
+            opciones_catalogo[label] = item_id
+            
+            datos_catalogo_visual.append({
+                "Ítem": item_num,
+                "Descripción": desc,
+                "Referencia": ref
+            })
+            
+        # Tabla interactiva nativa de Streamlit (permite buscar escribiendo, ordenar columnas, etc.)
+        st.dataframe(datos_catalogo_visual, use_container_width=True, hide_index=True)
+        
+        st.markdown("---")
+        st.subheader("Vincular refacción seleccionada al equipo actual")
+        
+        with st.form("form_asignar_ref_visual"):
+            ref_elegida_label = st.selectbox("Selecciona la refacción del catálogo para asignar:", list(opciones_catalogo.keys()))
             id_ref_elegida = opciones_catalogo[ref_elegida_label]
-            cantidad_req = st.number_input("Cantidad requerida:", min_value=1, value=1, step=1)
+            cantidad_req = st.number_input("Cantidad requerida para este equipo:", min_value=1, value=1, step=1)
 
             if st.form_submit_button("Vincular refacción al equipo"):
                 try:
@@ -359,7 +385,7 @@ with tab2:
         aviso("El catálogo global de refacciones está vacío.", "warn")
 
 # ---------------------------------------------------------------------------
-# Pestaña 3
+# Pestaña 3: BITÁCORA
 # ---------------------------------------------------------------------------
 with tab3:
     col_h1, col_h2 = st.columns([2, 1])
