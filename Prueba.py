@@ -392,7 +392,7 @@ with tab1:
                 ref_detalles = item.get("refacciones", {})
                 if ref_detalles:
                     datos_ref_recientes.append({
-                        "Ítem": ref_detalles.get('ITEM'),
+                        "Código Ref.": ref_detalles.get('ITEM'),
                         "Descripción": ref_detalles.get('DESCRIPCION'),
                         "Cant.": item.get("cantidad_requerida")
                     })
@@ -423,36 +423,80 @@ with tab1:
 # Pestaña 2: Navegar refacciones asociadas y asignar nuevas
 # ---------------------------------------------------------------------------
 with tab2:
-    col_n1, col_n2 = st.columns([1.3, 0.7])
+    encabezado_panel("Asignar nueva refacción al equipo")
+    cat_ref_res = supabase.table("refacciones").select("*").execute()
+    catalogo = cat_ref_res.data or []
 
-    with col_n1:
-        encabezado_panel("Navegador de refacciones asociadas a este equipo")
-        if ref_asignadas:
-            datos_asociadas_nav = []
-            opciones_desvincular = {}
-            for item in ref_asignadas:
-                ref_detalles = item.get("refacciones", {})
-                if ref_detalles:
-                    item_num = ref_detalles.get('ITEM')
-                    desc = ref_detalles.get('DESCRIPCION')
-                    
-                    label_desc = f"Ítem {item_num} - {desc}"
-                    opciones_desvincular[label_desc] = item.get("id")
+    if catalogo:
+        with st.form("form_asignar_ref_visual"):
+            opciones_catalogo = {}
+            for r in catalogo:
+                item_id = r.get('id')
+                item_num = str(r.get('ITEM', ''))
+                desc = str(r.get('DESCRIPCION', 'Sin Descripción'))
+                ref_fab = str(r.get('REFERENCIA', ''))
+                
+                # Ocultamos el código visualmente al principio, pero lo incluimos 
+                # de forma invisible/asociada para que el buscador nativo lo filtre al escribirlo.
+                label = f"{desc}" + (f"  |  Ref: {ref_fab}" if ref_fab else "") + f"  [{item_num}]"
+                opciones_catalogo[label] = item_id
 
-                    datos_asociadas_nav.append({
-                        "Ítem": item_num,
-                        "Descripción": desc,
-                        "Referencia": ref_detalles.get('REFERENCIA'),
-                        "Cantidad Asignada": item.get("cantidad_requerida")
-                    })
-            
-            df_asociadas = pd.DataFrame(datos_asociadas_nav)
-            st.dataframe(df_asociadas, use_container_width=True, hide_index=True)
+            col_s1, col_s2, col_s3 = st.columns([3.0, 0.8, 0.9])
+            with col_s1:
+                ref_elegida_label = st.selectbox("Seleccione refacción (puede escribir el código o descripción para buscar):", list(opciones_catalogo.keys()))
+                id_ref_elegida = opciones_catalogo[ref_elegida_label]
+            with col_s2:
+                cantidad_req = st.number_input("Cantidad:", min_value=0.01, value=1.0, step=0.1, format="%.2f")
+            with col_s3:
+                st.markdown("<div style='height: 27px;'></div>", unsafe_allow_html=True)
+                submit_vin = st.form_submit_button("Vincular")
 
-            with st.expander("Desvincular refacción del equipo"):
+            if submit_vin:
+                try:
+                    supabase.table("equipo_refacciones").insert({
+                        "registro_id": id_equipo_actual,
+                        "refaccion_id": id_ref_elegida,
+                        "cantidad_requerida": cantidad_req
+                    }).execute()
+                    st.success("Refacción asignada con éxito.")
+                    st.rerun()
+                except Exception as e:
+                    aviso(f"Error al asignar: {e}", "error", suelto=True)
+    else:
+        aviso("El catálogo global está vacío.", "warn")
+
+    st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
+
+    encabezado_panel("Navegador de refacciones asociadas a este equipo")
+    if ref_asignadas:
+        datos_asociadas_nav = []
+        opciones_desvincular = {}
+        for item in ref_asignadas:
+            ref_detalles = item.get("refacciones", {})
+            if ref_detalles:
+                item_num = ref_detalles.get('ITEM')
+                desc = ref_detalles.get('DESCRIPCION')
+                
+                label_desc = f"{desc} [{item_num}]"
+                opciones_desvincular[label_desc] = item.get("id")
+
+                datos_asociadas_nav.append({
+                    "Código Ref.": item_num,
+                    "Descripción": desc,
+                    "Referencia": ref_detalles.get('REFERENCIA'),
+                    "Cantidad Asignada": item.get("cantidad_requerida")
+                })
+        
+        df_asociadas = pd.DataFrame(datos_asociadas_nav)
+        st.dataframe(df_asociadas, use_container_width=True, hide_index=True)
+
+        with st.expander("Desvincular refacción del equipo"):
+            col_d1, col_d2 = st.columns([2, 1])
+            with col_d1:
                 id_relacion_a_borrar_label = st.selectbox("Selecciona refacción a retirar:", list(opciones_desvincular.keys()))
                 id_relacion_a_borrar = opciones_desvincular[id_relacion_a_borrar_label]
-
+            with col_d2:
+                st.markdown("<div style='height: 27px;'></div>", unsafe_allow_html=True)
                 if st.button("Eliminar asociación", type="secondary"):
                     try:
                         supabase.table("equipo_refacciones").delete().eq("id", id_relacion_a_borrar).execute()
@@ -460,42 +504,8 @@ with tab2:
                         st.rerun()
                     except Exception as e:
                         aviso(f"Error: {e}", "error", suelto=True)
-        else:
-            aviso("Este equipo aún no tiene refacciones asociadas.")
-
-    with col_n2:
-        encabezado_panel("Asignar nueva refacción")
-        cat_ref_res = supabase.table("refacciones").select("*").execute()
-        catalogo = cat_ref_res.data or []
-
-        if catalogo:
-            with st.form("form_asignar_ref_visual"):
-                opciones_catalogo = {}
-                for r in catalogo:
-                    item_id = r.get('id')
-                    item_num = r.get('ITEM', 'Sin Ítem')
-                    desc = r.get('DESCRIPCION', 'Sin Descripción')
-                    label = f"Ítem {item_num} - {desc}"
-                    opciones_catalogo[label] = item_id
-
-                ref_elegida_label = st.selectbox("Selecciona del catálogo:", list(opciones_catalogo.keys()))
-                id_ref_elegida = opciones_catalogo[ref_elegida_label]
-                
-                cantidad_req = st.number_input("Cantidad requerida:", min_value=0.01, value=1.0, step=0.1, format="%.2f")
-
-                if st.form_submit_button("Vincular refacción"):
-                    try:
-                        supabase.table("equipo_refacciones").insert({
-                            "registro_id": id_equipo_actual,
-                            "refaccion_id": id_ref_elegida,
-                            "cantidad_requerida": cantidad_req
-                        }).execute()
-                        st.success("Refacción asignada con éxito.")
-                        st.rerun()
-                    except Exception as e:
-                        aviso(f"Error al asignar: {e}", "error", suelto=True)
-        else:
-            aviso("El catálogo global está vacío.", "warn")
+    else:
+        aviso("Este equipo aún no tiene refacciones asociadas.")
 
 # ---------------------------------------------------------------------------
 # Pestaña 3: Bitácora (Navegable y Exportable a Excel)
