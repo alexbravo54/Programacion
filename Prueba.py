@@ -236,7 +236,7 @@ st.sidebar.markdown(
 )
 
 # ---------------------------------------------------------------------------
-# Encabezado principal con foto principal opcional arriba a la derecha
+# Encabezado principal con foto principal fija (sin opción de cambio)
 # ---------------------------------------------------------------------------
 col_head_txt, col_head_img = st.columns([0.8, 0.2])
 
@@ -257,18 +257,11 @@ with col_head_img:
     foto_url = equipo_info.get('foto_principal_url')
     
     if foto_url:
-        st.image(foto_url, caption="Foto principal", use_container_width=True)
-        if st.button("Cambiar foto", key=f"btn_cambiar_foto_{id_equipo_actual}", type="secondary"):
-            try:
-                supabase.table("equipos").update({"foto_principal_url": None}).eq("id", id_equipo_actual).execute()
-                st.rerun()
-            except Exception as e:
-                pass
+        st.image(foto_url, caption="Foto oficial del activo", use_container_width=True)
     else:
         with st.popover("Añadir foto del equipo"):
             st.markdown("<b>Selecciona o sube la imagen</b>", unsafe_allow_html=True)
             
-            # Componente de carga idéntico y limpio
             foto_subida = st.file_uploader(
                 "Selecciona imagen (PNG, JPG)", 
                 type=["png", "jpg", "jpeg"], 
@@ -276,7 +269,7 @@ with col_head_img:
             )
             
             if foto_subida is not None:
-                if st.button("Guardar foto principal", key=f"btn_save_foto_{id_equipo_actual}"):
+                if st.button("Guardar foto oficial", key=f"btn_save_foto_{id_equipo_actual}"):
                     try:
                         file_path = f"{codigo_activo_actual}/foto_principal.jpg"
                         supabase.storage.from_("Archivo equipos").upload(
@@ -288,7 +281,7 @@ with col_head_img:
                         
                         supabase.table("equipos").update({"foto_principal_url": public_url}).eq("id", id_equipo_actual).execute()
                         
-                        st.success("Foto guardada con éxito.")
+                        st.success("Foto oficial guardada con éxito.")
                         st.rerun()
                     except Exception as e:
                         aviso(f"Error: {e}", "error", suelto=True)
