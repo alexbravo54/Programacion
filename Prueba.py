@@ -19,7 +19,7 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------------------------
-# Estilo corporativo y optimización visual (Incluye ajuste para desplegables anchos)
+# Estilo corporativo y optimización visual (Ancho total para desplegables)
 # ---------------------------------------------------------------------------
 st.markdown("""
 <style>
@@ -74,11 +74,14 @@ st.markdown("""
     .titulo { font-size: 26px; font-weight: 500; color: var(--navy); margin: 0 0 4px 0; }
     .subtitulo { font-size: 13px; color: #3B465A; margin-bottom: 22px; }
 
-    /* Forzar mayor ancho y legibilidad en los menús desplegables de selección */
-    div[data-baseweb="popover"] {
-        max-width: none !important;
-        width: auto !important;
-        min-width: 450px !important;
+    /* Forzar que el menú flotante del buscador sea ancho y muestre todo el texto */
+    div[data-baseweb="popover"], div[role="listbox"] {
+        width: 100% !important;
+        min-width: 650px !important;
+    }
+    div[data-baseweb="select"] span {
+        white-space: normal !important;
+        overflow: visible !important;
     }
 
     /* Contenedor compacto para la foto oficial superior derecha */
@@ -427,7 +430,7 @@ with tab1:
             aviso("No hay eventos registrados en la bitácora.")
 
 # ---------------------------------------------------------------------------
-# Pestaña 2: Navegar refacciones asociadas y asignar nuevas (Buscador Arriba)
+# Pestaña 2: Navegar refacciones asociadas y asignar nuevas (Buscador Arriba optimizado)
 # ---------------------------------------------------------------------------
 with tab2:
     encabezado_panel("Asignar nueva refacción al equipo")
@@ -443,18 +446,19 @@ with tab2:
                 desc = r.get('DESCRIPCION', 'Sin Descripción')
                 ref_fab = r.get('REFERENCIA', '')
                 
-                label = f"[{item_num}]  {desc}" + (f"  |  Ref: {ref_fab}" if ref_fab else "")
+                # Formato organizado estructurado
+                label = f"Código: {item_num}   |   Descripción: {desc}" + (f"   |   Ref: {ref_fab}" if ref_fab else "")
                 opciones_catalogo[label] = item_id
 
-            col_s1, col_s2, col_s3 = st.columns([2.2, 0.8, 1.0])
+            col_s1, col_s2, col_s3 = st.columns([3.0, 0.8, 0.9])
             with col_s1:
                 ref_elegida_label = st.selectbox("Seleccione refacción del catálogo global:", list(opciones_catalogo.keys()))
                 id_ref_elegida = opciones_catalogo[ref_elegida_label]
             with col_s2:
-                cantidad_req = st.number_input("Cantidad requerida:", min_value=0.01, value=1.0, step=0.1, format="%.2f")
+                cantidad_req = st.number_input("Cantidad:", min_value=0.01, value=1.0, step=0.1, format="%.2f")
             with col_s3:
                 st.markdown("<div style='height: 27px;'></div>", unsafe_allow_html=True)
-                submit_vin = st.form_submit_button("Vincular refacción")
+                submit_vin = st.form_submit_button("Vincular")
 
             if submit_vin:
                 try:
