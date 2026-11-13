@@ -182,7 +182,7 @@ lineas_disponibles = ["Todas"] + sorted(list(set(str(eq.get('linea', 'Sin Línea
 
 linea_por_defecto = 0
 if equipo_encontrado_por_qr and equipo_encontrado_por_qr.get('linea') in lineas_disponibles:
-    linea_por_defecto = lineas_disponibles.index(equipo_encontrado_por_qr.get('linea'))
+    linea_por_defecto = linea_disponibles.index(equipo_encontrado_por_qr.get('linea'))
 
 linea_seleccionada = st.sidebar.selectbox("Línea", lineas_disponibles, index=linea_por_defecto)
 
@@ -219,19 +219,55 @@ st.sidebar.markdown(
 )
 
 # ---------------------------------------------------------------------------
-# Encabezado principal limpio
+# Encabezado principal dividido en columnas para ubicar la foto/botón arriba a la derecha
 # ---------------------------------------------------------------------------
-st.markdown(
-    f'<div class="crumb">Activos / Equipos / {codigo_activo_actual}</div>'
-    f'<div class="titulo">Equipo {codigo_activo_actual}</div>',
-    unsafe_allow_html=True
-)
-partes_sub = []
-if descripcion_actual:
-    partes_sub.append(str(descripcion_actual))
-partes_sub.append(f"Planta: {equipo_info.get('planta', 'N/A')}")
-partes_sub.append(f"Línea: {equipo_info.get('linea', 'N/A')}")
-st.markdown(f'<div class="subtitulo">{"  |  ".join(partes_sub)}</div>', unsafe_allow_html=True)
+col_head_txt, col_head_img = st.columns([0.8, 0.2])
+
+with col_head_txt:
+    st.markdown(
+        f'<div class="crumb">Activos / Equipos / {codigo_activo_actual}</div>'
+        f'<div class="titulo">Equipo {codigo_activo_actual}</div>',
+        unsafe_allow_html=True
+    )
+    partes_sub = []
+    if descripcion_actual:
+        partes_sub.append(str(descripcion_actual))
+    partes_sub.append(f"Planta: {equipo_info.get('planta', 'N/A')}")
+    partes_sub.append(f"Línea: {equipo_info.get('linea', 'N/A')}")
+    st.markdown(f'<div class="subtitulo">{"  |  ".join(partes_sub)}</div>', unsafe_allow_html=True)
+
+with col_head_img:
+    foto_url = equipo_info.get('foto_principal_url')
+    
+    if foto_url:
+        # Si ya tiene foto, se muestra directamente en el cuadro superior derecho
+        st.image(foto_url, caption="Foto del equipo", use_container_width=True)
+    else:
+        # Si no tiene foto, se muestra el botón/cargador para tomarla o subirla
+        with st.container(border=True):
+            st.markdown("<small><b>Foto del equipo</b></small>", unsafe_allow_html=True)
+            foto_subida = st.camera_input("Tomar foto", key=f"cam_{id_equipo_actual}")
+            if not foto_subida:
+                foto_subida = st.file_uploader("Subir foto", type=["png", "jpg", "jpeg"], key=f"sub_{id_equipo_actual}")
+            
+            if foto_subida is not None:
+                if st.button("Guardar foto"):
+                    try:
+                        file_path = f"{codigo_activo_actual}/foto_principal.jpg"
+                        supabase.storage.from_("Archivo equipos").upload(
+                            file_path,
+                            foto_subida.getvalue(),
+                            file_options={"upsert": "true", "content-type": "image/jpeg"}
+                        )
+                        public_url = supabase.storage.from_("Archivo equipos").get_public_url(file_path)
+                        
+                        # Actualizar la columna en la tabla equipos
+                        supabase.table("equipos").update({"foto_principal_url": public_url}).eq("id", id_equipo_actual).execute()
+                        
+                        st.success("Foto guardada con éxito.")
+                        st.rerun()
+                    except Exception as e:
+                        aviso(f"Error: {e}", "error", suelto=True)
 
 query_ref_asig = supabase.table("equipo_refacciones").select(
     "id, cantidad_requerida, created_at, refacciones(id, \"ITEM\", \"DESCRIPCION\", \"REFERENCIA\")"
@@ -280,7 +316,7 @@ with tab1:
                     st.markdown(f"Archivo: **{nombre_arc}**")
                     
                     if any(url_arc.lower().endswith(ext) for ext in ['.png', '.jpg', '.jpeg']):
-                        st.image(url_arc, caption=f"Fotografía del equipo: {nombre_arc}", use_container_width=True)
+                        st.image(url_arc, caption=f"Documento adjunto: {nombre_arc}", use_container_width=True)
                     elif url_arc.lower().endswith('.pdf'):
                         st.info("Archivo PDF disponible para visualización.")
                         st.markdown(f"[Abrir el PDF en el navegador]({url_arc})")
