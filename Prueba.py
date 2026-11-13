@@ -335,8 +335,8 @@ with tab1:
                 url_arc = arc.get('archivo_url')
                 
                 with st.container(border=True):
-                    st.markdown(f"📄 Archivo: **[{nombre_arc}]({url_arc})**", unsafe_allow_html=True)
-                    st.markdown(f'<a href="{url_arc}" target="_blank" style="font-size: 13px; text-decoration: none;">🔗 Abrir documento en una nueva pestaña</a>', unsafe_allow_html=True)
+                    # Enlace directo al archivo abriéndose en pestaña nueva (target="_blank"), sin texto sobrante
+                    st.markdown(f'📄 Archivo: <a href="{url_arc}" target="_blank"><b>{nombre_arc}</b></a>', unsafe_allow_html=True)
         else:
             aviso("Este equipo no tiene planos o imágenes adjuntas.")
 
