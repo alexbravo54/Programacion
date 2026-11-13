@@ -127,7 +127,6 @@ st.markdown("""
 
 
 def aviso(texto, tipo="info", suelto=False):
-    """Mensaje sobrio sin colores pastel ni iconos."""
     clases = f"aviso {tipo}" + (" suelto" if suelto else "")
     st.markdown(f'<div class="{clases}">{texto}</div>', unsafe_allow_html=True)
 
@@ -137,7 +136,7 @@ def encabezado_panel(texto):
 
 
 # ---------------------------------------------------------------------------
-# Datos
+# Carga de datos y lectura de parámetros URL (QR)
 # ---------------------------------------------------------------------------
 equipos_res = supabase.table("equipos").select("*").execute()
 equipos = equipos_res.data or []
@@ -145,6 +144,18 @@ equipos = equipos_res.data or []
 if not equipos:
     aviso("No hay equipos registrados en la tabla 'equipos'.", "warn", suelto=True)
     st.stop()
+
+# Capturar parámetro de la URL (?equipo=ID)
+query_params = st.query_params
+id_equipo_en_url = query_params.get("equipo", None)
+
+equipo_encontrado_por_qr = None
+if id_equipo_en_url is not None:
+    try:
+        id_url_int = int(id_equipo_en_url)
+        equipo_encontrado_por_qr = next((eq for eq in equipos if eq.get('id') == id_url_int), None)
+    except ValueError:
+        pass
 
 # ---------------------------------------------------------------------------
 # Barra lateral
@@ -156,31 +167,46 @@ st.sidebar.markdown(
 )
 
 plantas_disponibles = ["Todas"] + sorted(list(set(str(eq.get('planta', 'Sin Planta')) for eq in equipos if eq.get('planta'))))
-planta_seleccionada = st.sidebar.selectbox("Planta", plantas_disponibles)
+
+planta_por_defecto = 0
+if equipo_encontrado_por_qr and equipo_encontrado_por_qr.get('planta') in plantas_disponibles:
+    planta_por_defecto = plantas_disponibles.index(equipo_encontrado_por_qr.get('planta'))
+
+planta_seleccionada = st.sidebar.selectbox("Planta", plantas_disponibles, index=planta_por_defecto)
 
 equipos_filtrados = equipos
 if planta_seleccionada != "Todas":
     equipos_filtrados = [eq for eq in equipos_filtrados if str(eq.get('planta', 'Sin Planta')) == planta_seleccionada]
 
 lineas_disponibles = ["Todas"] + sorted(list(set(str(eq.get('linea', 'Sin Línea')) for eq in equipos_filtrados if eq.get('linea'))))
-linea_seleccionada = st.sidebar.selectbox("Línea", lineas_disponibles)
+
+linea_por_defecto = 0
+if equipo_encontrado_por_qr and equipo_encontrado_por_qr.get('linea') in lineas_disponibles:
+    linea_por_defecto = lineas_disponibles.index(equipo_encontrado_por_qr.get('linea'))
+
+linea_seleccionada = st.sidebar.selectbox("Línea", lineas_disponibles, index=linea_por_defecto)
 
 if linea_seleccionada != "Todas":
     equipos_filtrados = [eq for eq in equipos_filtrados if str(eq.get('linea', 'Sin Línea')) == linea_seleccionada]
 
 opciones_equipos = {}
-for eq in equipos_filtrados:
+indice_equipo_select = 0
+
+for idx, eq in enumerate(equipos_filtrados):
     codigo = eq.get('Codigo de Activo', 'Sin Código')
     desc = eq.get('Equipo') or eq.get('descripcion_equipo') or ''
     label = f"{codigo} - {desc}" if desc else codigo
     opciones_equipos[label] = eq['id']
+    
+    if equipo_encontrado_por_qr and eq['id'] == equipo_encontrado_por_qr['id']:
+        indice_equipo_select = idx
 
 if not opciones_equipos:
     with st.sidebar:
         aviso("No hay equipos con los filtros seleccionados.", "warn", suelto=True)
     st.stop()
 
-equipo_seleccionado_label = st.sidebar.selectbox("Equipo", list(opciones_equipos.keys()))
+equipo_seleccionado_label = st.sidebar.selectbox("Equipo", list(opciones_equipos.keys()), index=indice_equipo_select)
 id_equipo_actual = opciones_equipos[equipo_seleccionado_label]
 
 equipo_info = next(eq for eq in equipos if eq['id'] == id_equipo_actual)
