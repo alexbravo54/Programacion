@@ -137,10 +137,22 @@ def encabezado_panel(texto):
 
 
 # ---------------------------------------------------------------------------
-# Carga de datos y lectura de parámetros URL (QR)
+# Carga de TODOS los equipos sin límite de paginación
 # ---------------------------------------------------------------------------
-equipos_res = supabase.table("equipos").select("*").execute()
-equipos = equipos_res.data or []
+def cargar_todos_los_equipos():
+    todos_los_datos = []
+    chunk_size = 1000
+    offset = 0
+    while True:
+        res = supabase.table("equipos").select("*").range(offset, offset + chunk_size - 1).execute()
+        datos_chunk = res.data or []
+        todos_los_datos.extend(datos_chunk)
+        if len(datos_chunk) < chunk_size:
+            break
+        offset += chunk_size
+    return todos_los_datos
+
+equipos = cargar_todos_los_equipos()
 
 if not equipos:
     aviso("No hay equipos registrados en la tabla 'equipos'.", "warn", suelto=True)
@@ -188,6 +200,12 @@ linea_seleccionada = st.sidebar.selectbox("Línea", lineas_disponibles, index=li
 
 if linea_seleccionada != "Todas":
     equipos_filtrados = [eq for eq in equipos_filtrados if str(eq.get('linea', 'Sin Línea')) == linea_seleccionada]
+
+# Ordenar alfabética/numéricamente por Código de Activo para que aparezca el 9100 correctamente
+equipos_filtrados = sorted(
+    equipos_filtrados, 
+    key=lambda x: str(x.get('Codigo de Activo', ''))
+)
 
 opciones_equipos = {}
 indice_equipo_select = 0
