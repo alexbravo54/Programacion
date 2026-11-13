@@ -19,7 +19,7 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------------------------
-# Estilo corporativo y optimización visual (Ancho total para desplegables)
+# Estilo corporativo y optimización visual
 # ---------------------------------------------------------------------------
 st.markdown("""
 <style>
@@ -73,16 +73,6 @@ st.markdown("""
     .crumb { font-size: 12px; color: var(--txt-2); margin-bottom: 6px; }
     .titulo { font-size: 26px; font-weight: 500; color: var(--navy); margin: 0 0 4px 0; }
     .subtitulo { font-size: 13px; color: #3B465A; margin-bottom: 22px; }
-
-    /* Forzar que el menú flotante del buscador sea ancho y muestre todo el texto */
-    div[data-baseweb="popover"], div[role="listbox"] {
-        width: 100% !important;
-        min-width: 650px !important;
-    }
-    div[data-baseweb="select"] span {
-        white-space: normal !important;
-        overflow: visible !important;
-    }
 
     /* Contenedor compacto para la foto oficial superior derecha */
     .foto-oficial-container img {
@@ -430,47 +420,65 @@ with tab1:
             aviso("No hay eventos registrados en la bitácora.")
 
 # ---------------------------------------------------------------------------
-# Pestaña 2: Navegar refacciones asociadas y asignar nuevas (Buscador Arriba optimizado)
+# Pestaña 2: Navegar refacciones asociadas y asignar nuevas (Buscador multilínea con filtro)
 # ---------------------------------------------------------------------------
 with tab2:
-    encabezado_panel("Asignar nueva refacción al equipo")
+    encabezado_panel("Asignar nueva refacción al equipo (Buscador Multilínea)")
     cat_ref_res = supabase.table("refacciones").select("*").execute()
     catalogo = cat_ref_res.data or []
 
     if catalogo:
-        with st.form("form_asignar_ref_visual"):
+        # Campo de texto para filtrar el catálogo en tiempo real
+        texto_busqueda = st.text_input("🔍 Escribe para buscar refacción por código o descripción:", placeholder="Ej: Válvula, rodamiento, 851-999...")
+
+        # Filtrar catálogo según el texto ingresado
+        catalogo_filtrado = []
+        for r in catalogo:
+            c_item = str(r.get('ITEM', ''))
+            c_desc = str(r.get('DESCRIPCION', ''))
+            c_ref = str(r.get('REFERENCIA', ''))
+            
+            texto_completo = f"{c_item} {c_desc} {c_ref}".lower()
+            if not texto_busqueda or texto_busqueda.lower() in texto_completo:
+                catalogo_filtrado.append(r)
+
+        if catalogo_filtrado:
+            # Crear un diccionario con opciones multilínea formateadas claramente
             opciones_catalogo = {}
-            for r in catalogo:
+            for r in catalogo_filtrado:
                 item_id = r.get('id')
                 item_num = r.get('ITEM', 'Sin Código')
                 desc = r.get('DESCRIPCION', 'Sin Descripción')
-                ref_fab = r.get('REFERENCIA', '')
+                ref_fab = r.get('REFERENCIA', 'N/A')
                 
-                # Formato organizado estructurado
-                label = f"Código: {item_num}   |   Descripción: {desc}" + (f"   |   Ref: {ref_fab}" if ref_fab else "")
+                # Formato estructurado tipo ficha
+                label = f"[{item_num}] - {desc} (Ref: {ref_fab})"
                 opciones_catalogo[label] = item_id
 
-            col_s1, col_s2, col_s3 = st.columns([3.0, 0.8, 0.9])
-            with col_s1:
-                ref_elegida_label = st.selectbox("Seleccione refacción del catálogo global:", list(opciones_catalogo.keys()))
-                id_ref_elegida = opciones_catalogo[ref_elegida_label]
-            with col_s2:
-                cantidad_req = st.number_input("Cantidad:", min_value=0.01, value=1.0, step=0.1, format="%.2f")
-            with col_s3:
-                st.markdown("<div style='height: 27px;'></div>", unsafe_allow_html=True)
-                submit_vin = st.form_submit_button("Vincular")
+            with st.form("form_asignar_ref_multilineal"):
+                col_s1, col_s2, col_s3 = st.columns([3.0, 0.8, 0.9])
+                with col_s1:
+                    ref_elegida_label = st.selectbox("Seleccione del resultado filtrado:", list(opciones_catalogo.keys()))
+                    id_ref_elegida = opciones_catalogo[ref_elegida_label]
+                with col_s2:
+                    cantidad_req = st.number_input("Cantidad:", min_value=0.01, value=1.0, step=0.1, format="%.2f")
+                with col_s3:
+                    st.markdown("<div style='height: 27px;'></div>", unsafe_allow_html=True)
+                    submit_vin = st.form_submit_button("Vincular")
 
-            if submit_vin:
-                try:
-                    supabase.table("equipo_refacciones").insert({
-                        "registro_id": id_equipo_actual,
-                        "refaccion_id": id_ref_elegida,
-                        "cantidad_requerida": cantidad_req
-                    }).execute()
-                    st.success("Refacción asignada con éxito.")
-                    st.rerun()
-                except Exception as e:
-                    aviso(f"Error al asignar: {e}", "error", suelto=True)
+                if submit_vin:
+                    try:
+                        supabase.table("equipo_refacciones").insert({
+                            "registro_id": id_equipo_actual,
+                            "refaccion_id": id_ref_elegida,
+                            "cantidad_requerida": cantidad_req
+                        }).execute()
+                        st.success("Refacción asignada con éxito.")
+                        st.rerun()
+                    except Exception as e:
+                        aviso(f"Error al asignar: {e}", "error", suelto=True)
+        else:
+            aviso("No se encontraron refacciones con ese criterio de búsqueda.", "warn", suelto=True)
     else:
         aviso("El catálogo global está vacío.", "warn")
 
