@@ -154,15 +154,15 @@ if not equipos:
     st.stop()
 
 query_params = st.query_params
-id_equipo_en_url = query_params.get("equipo", None)
+codigo_activo_en_url = query_params.get("equipo", None)
 
 equipo_encontrado_por_qr = None
-if id_equipo_en_url is not None:
-    try:
-        id_url_int = int(id_equipo_en_url)
-        equipo_encontrado_por_qr = next((eq for eq in equipos if eq.get('id') == id_url_int), None)
-    except ValueError:
-        pass
+if codigo_activo_en_url is not None:
+    # Buscamos directamente comparando el Código de Activo que viene en la URL
+    equipo_encontrado_por_qr = next(
+        (eq for eq in equipos if str(eq.get('Codigo de Activo', '')).strip() == str(codigo_activo_en_url).strip()), 
+        None
+    )
 
 st.sidebar.markdown(
     '<p class="sb-title">GESTIÓN DE ACTIVOS</p>'
