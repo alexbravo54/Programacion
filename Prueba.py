@@ -540,4 +540,31 @@ with tab3:
         else:
             aviso("No hay eventos registrados en la bitácora de este equipo.")
 
-    with col_
+    with col_h2:
+        encabezado_panel("Registrar evento")
+        with st.form("form_bitacora"):
+            tipo_evento = st.selectbox("Tipo de evento", [
+                "Mantenimiento Preventivo",
+                "Mantenimiento Correctivo",
+                "Falla Reportada",
+                "Cambio de Componente",
+                "Inspección"
+            ])
+            descripcion_evento = st.text_area("Detalle de lo realizado / suceso")
+            nombre_tecnico = st.text_input("Técnico responsable")
+
+            if st.form_submit_button("Guardar en la bitácora"):
+                if descripcion_evento.strip():
+                    try:
+                        supabase.table("historial_equipos").insert({
+                            "registro_id": id_equipo_actual,
+                            "tipo_evento": tipo_evento,
+                            "descripcion": descripcion_evento,
+                            "tecnico": nombre_tecnico
+                        }).execute()
+                        st.success("Guardado en la bitácora.")
+                        st.rerun()
+                    except Exception as e:
+                        aviso(f"Error: {e}", "error", suelto=True)
+                else:
+                    aviso("La descripción no puede estar vacía.", "warn", suelto=True)
