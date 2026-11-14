@@ -37,7 +37,6 @@ st.markdown("""
     #MainMenu, footer, [data-testid="stToolbar"], [data-testid="stDeployButton"] { visibility: hidden; }
     header[data-testid="stHeader"] { background: transparent; }
 
-    /* Corrección general de textos para evitar letras blancas sobre fondo blanco en móviles */
     p, span, label, div { color: var(--txt); }
     
     [data-testid="stSidebar"] { background: var(--navy); border-right: 1px solid var(--navy); }
@@ -107,14 +106,26 @@ st.markdown("""
     .aviso.suelto { border-top: 1px solid var(--line); }
 
     div.stButton > button,
-    [data-testid="stFormSubmitButton"] > button {
+    [data-testid="stFormSubmitButton"] > button,
+    button[kind="secondary"],
+    button[kind="primary"] {
         width: 100%; border-radius: 2px;
-        background: var(--navy); color: #FFFFFF; border: 1px solid var(--navy);
-        font-size: 13px;
+        background: var(--navy) !important; 
+        color: #FFFFFF !important; 
+        border: 1px solid var(--navy) !important;
+        font-size: 13px !important;
+    }
+    div.stButton > button *,
+    [data-testid="stFormSubmitButton"] > button *,
+    button[kind="secondary"] *,
+    button[kind="primary"] * {
+        color: #FFFFFF !important;
     }
     div.stButton > button:hover,
     [data-testid="stFormSubmitButton"] > button:hover {
-        background: var(--navy-2); border-color: var(--navy-2); color: #FFFFFF;
+        background: var(--navy-2) !important; 
+        border-color: var(--navy-2) !important; 
+        color: #FFFFFF !important;
     }
     div[data-baseweb="input"], div[data-baseweb="textarea"] { border-radius: 2px; }
     div[data-baseweb="select"] > div { border-radius: 2px; }
@@ -529,31 +540,4 @@ with tab3:
         else:
             aviso("No hay eventos registrados en la bitácora de este equipo.")
 
-    with col_h2:
-        encabezado_panel("Registrar evento")
-        with st.form("form_bitacora"):
-            tipo_evento = st.selectbox("Tipo de evento", [
-                "Mantenimiento Preventivo",
-                "Mantenimiento Correctivo",
-                "Falla Reportada",
-                "Cambio de Componente",
-                "Inspección"
-            ])
-            descripcion_evento = st.text_area("Detalle de lo realizado / suceso")
-            nombre_tecnico = st.text_input("Técnico responsable")
-
-            if st.form_submit_button("Guardar en la bitácora"):
-                if descripcion_evento.strip():
-                    try:
-                        supabase.table("historial_equipos").insert({
-                            "registro_id": id_equipo_actual,
-                            "tipo_evento": tipo_evento,
-                            "descripcion": descripcion_evento,
-                            "tecnico": nombre_tecnico
-                        }).execute()
-                        st.success("Guardado en la bitácora.")
-                        st.rerun()
-                    except Exception as e:
-                        aviso(f"Error: {e}", "error", suelto=True)
-                else:
-                    aviso("La descripción no puede estar vacía.", "warn", suelto=True)
+    with col_
