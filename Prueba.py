@@ -127,6 +127,15 @@ st.markdown("""
         border-color: var(--navy-2) !important; 
         color: #FFFFFF !important;
     }
+    
+    div[data-baseweb="input"] input, 
+    div[data-baseweb="textarea"] textarea,
+    input, textarea { 
+        color: var(--txt) !important; 
+        background-color: #FFFFFF !important;
+        -webkit-text-fill-color: var(--txt) !important;
+    }
+
     div[data-baseweb="input"], div[data-baseweb="textarea"] { border-radius: 2px; }
     div[data-baseweb="select"] > div { border-radius: 2px; }
     [data-testid="stExpander"], [data-testid="stForm"] {
