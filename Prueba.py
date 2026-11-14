@@ -32,13 +32,16 @@ st.markdown("""
         --side-txt: #9AA7BD;
     }
 
-    .stApp { background: var(--bg); }
+    .stApp { background: var(--bg); color: var(--txt); }
     .block-container { padding-top: 2rem; max-width: 1450px; }
     #MainMenu, footer, [data-testid="stToolbar"], [data-testid="stDeployButton"] { visibility: hidden; }
     header[data-testid="stHeader"] { background: transparent; }
 
+    /* Corrección general de textos para evitar letras blancas sobre fondo blanco en móviles */
+    p, span, label, div { color: var(--txt); }
+    
     [data-testid="stSidebar"] { background: var(--navy); border-right: 1px solid var(--navy); }
-    [data-testid="stSidebar"] label p {
+    [data-testid="stSidebar"] label p, [data-testid="stSidebar"] span {
         color: var(--side-txt) !important;
         font-size: 12px !important;
     }
@@ -158,7 +161,6 @@ codigo_activo_en_url = query_params.get("equipo", None)
 
 equipo_encontrado_por_qr = None
 if codigo_activo_en_url is not None:
-    # Buscamos directamente comparando el Código de Activo que viene en la URL
     equipo_encontrado_por_qr = next(
         (eq for eq in equipos if str(eq.get('Codigo de Activo', '')).strip() == str(codigo_activo_en_url).strip()), 
         None
