@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, time
 import streamlit as str_app
 import pandas as pd
 from supabase import create_client, Client
@@ -559,10 +559,8 @@ with tab3:
         tipo_evento = str_app.selectbox(
             "Tipo de evento",
             [
-                "Mantenimiento Preventivo",
-                "Mantenimiento Correctivo",
-                "Falla Reportada",
-                "Cambio de Componente",
+                "Reportar falla",
+                "Cambio de refaccion",
                 "Inspección",
             ],
             key=f"tipo_evt_{id_equipo_actual}",
@@ -572,55 +570,40 @@ with tab3:
             descripcion_evento = str_app.text_area("Detalle de lo realizado / suceso")
             nombre_tecnico = str_app.text_input("Técnico responsable")
 
-            fecha_inicio = None
-            fecha_fin = None
-            duracion_minutos = None
+            str_app.markdown("<b>Rango de tiempo de atención</b>", unsafe_allow_html=True)
+            col_t1, col_t2 = str_app.columns(2)
+            with col_t1:
+                f_ini = str_app.date_input("Fecha inicio")
+                h_ini = str_app.time_input("Hora inicio", value=time(0, 0))
+            with col_t2:
+                f_fin = str_app.date_input("Fecha fin")
+                h_fin = str_app.time_input("Hora fin", value=time(1, 0))
 
-            if tipo_evento in [
-                "Mantenimiento Preventivo",
-                "Mantenimiento Correctivo",
-            ]:
-                str_app.markdown("<b>Rango de tiempo de atención</b>", unsafe_allow_html=True)
-                col_t1, col_t2 = str_app.columns(2)
-                with col_t1:
-                    f_ini = str_app.date_input("Fecha inicio")
-                    h_ini = str_app.time_input("Hora inicio")
-                with col_t2:
-                    f_fin = str_app.date_input("Fecha fin")
-                    h_fin = str_app.time_input("Hora fin")
+            fecha_inicio = f"{f_ini} {h_ini}"
+            fecha_fin = f"{f_fin} {h_fin}"
 
-                fecha_inicio = f"{f_ini} {h_ini}"
-                fecha_fin = f"{f_fin} {h_fin}"
-
-                # Cálculo automático de la duración en minutos entre inicio y fin
-                dt_ini = datetime.combine(f_ini, h_ini)
-                dt_fin = datetime.combine(f_fin, h_fin)
-                diff_seconds = (dt_fin - dt_ini).total_seconds()
-                duracion_minutos = max(0, int(diff_seconds / 60))
-
-            else:
-                duracion_minutos = str_app.number_input(
-                    "Duración de la actividad (Minutos):",
-                    min_value=0.0,
-                    value=30.0,
-                    step=5.0,
-                    format="%.0f",
-                )
+            dt_ini = datetime.combine(f_ini, h_ini)
+            dt_fin = datetime.combine(f_fin, h_fin)
 
             if str_app.form_submit_button("Guardar en la bitácora"):
-                if descripcion_evento.strip():
+                if not descripcion_evento.strip():
+                    str_app.warning("La descripción no puede estar vacía.")
+                elif dt_ini >= dt_fin:
+                    str_app.error("La fecha/hora de inicio no puede ser igual o posterior a la fecha/hora fin.")
+                else:
                     try:
+                        diff_seconds = (dt_fin - dt_ini).total_seconds()
+                        duracion_minutos = int(diff_seconds / 60)
+
                         payload = {
                             "registro_id": id_equipo_actual,
                             "tipo_evento": tipo_evento,
                             "descripcion": descripcion_evento,
                             "tecnico": nombre_tecnico,
+                            "fecha_inicio": fecha_inicio,
+                            "fecha_fin": fecha_fin,
                             "duracion_minutos": duracion_minutos,
                         }
-
-                        if fecha_inicio and fecha_fin:
-                            payload["fecha_inicio"] = fecha_inicio
-                            payload["fecha_fin"] = fecha_fin
 
                         supabase.table("historial_equipos").insert(
                             payload
@@ -629,9 +612,3 @@ with tab3:
                         str_app.rerun()
                     except Exception as e:
                         aviso(f"Error: {e}", "error", suelto=True)
-                else:
-                    aviso(
-                        "La descripción no puede estar vacía.",
-                        "warn",
-                        suelto=True,
-                    )
