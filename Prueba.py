@@ -1,4 +1,5 @@
-import streamlit as st
+from datetime import datetime
+import streamlit as str_app
 import pandas as pd
 from supabase import create_client, Client
 
@@ -6,19 +7,19 @@ SUPABASE_URL = "https://tdhvesgqjowgzkwcsofy.supabase.co/"
 SUPABASE_KEY = "sb_publishable_ePVH6D7O0L88kY48WMHGjA_CN2SsnHZ"
 
 
-@st.cache_resource
+@str_app.cache_resource
 def init_connection():
     return create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
 supabase = init_connection()
 
-st.set_page_config(
+str_app.set_page_config(
     page_title="Control de Equipos | Mantenimiento",
     layout="wide"
 )
 
-st.markdown("""
+str_app.markdown("""
 <style>
     :root {
         --navy: #14213D;
@@ -149,11 +150,11 @@ st.markdown("""
 
 def aviso(texto, tipo="info", suelto=False):
     clases = f"aviso {tipo}" + (" suelto" if suelto else "")
-    st.markdown(f'<div class="{clases}">{texto}</div>', unsafe_allow_html=True)
+    str_app.markdown(f'<div class="{clases}">{texto}</div>', unsafe_allow_html=True)
 
 
 def encabezado_panel(texto):
-    st.markdown(f'<div class="ph">{texto}</div>', unsafe_allow_html=True)
+    str_app.markdown(f'<div class="ph">{texto}</div>', unsafe_allow_html=True)
 
 
 def cargar_todos_los_equipos():
@@ -174,9 +175,9 @@ equipos = cargar_todos_los_equipos()
 
 if not equipos:
     aviso("No hay equipos registrados en la tabla 'equipos'.", "warn", suelto=True)
-    st.stop()
+    str_app.stop()
 
-query_params = st.query_params
+query_params = str_app.query_params
 codigo_activo_en_url = query_params.get("equipo", None)
 
 equipo_encontrado_por_qr = None
@@ -186,7 +187,7 @@ if codigo_activo_en_url is not None:
         None
     )
 
-st.sidebar.markdown(
+str_app.sidebar.markdown(
     '<p class="sb-title">GESTIÓN DE ACTIVOS</p>'
     '<p class="sb-sub">Búsqueda y filtros</p>',
     unsafe_allow_html=True
@@ -198,7 +199,7 @@ planta_por_defecto = 0
 if equipo_encontrado_por_qr and equipo_encontrado_por_qr.get('Planta') in plantas_disponibles:
     planta_por_defecto = plantas_disponibles.index(equipo_encontrado_por_qr.get('Planta'))
 
-planta_seleccionada = st.sidebar.selectbox("Planta", plantas_disponibles, index=planta_por_defecto)
+planta_seleccionada = str_app.sidebar.selectbox("Planta", plantas_disponibles, index=planta_por_defecto)
 
 equipos_filtrados = equipos
 if planta_seleccionada != "Todas":
@@ -210,7 +211,7 @@ linea_por_defecto = 0
 if equipo_encontrado_por_qr and equipo_encontrado_por_qr.get('Linea') in lineas_disponibles:
     linea_por_defecto = lineas_disponibles.index(equipo_encontrado_por_qr.get('Linea'))
 
-linea_seleccionada = st.sidebar.selectbox("Línea", lineas_disponibles, index=linea_por_defecto)
+linea_seleccionada = str_app.sidebar.selectbox("Línea", lineas_disponibles, index=linea_por_defecto)
 
 if linea_seleccionada != "Todas":
     equipos_filtrados = [eq for eq in equipos_filtrados if str(eq.get('Linea', 'Sin Línea')) == linea_seleccionada]
@@ -233,26 +234,26 @@ for idx, eq in enumerate(equipos_filtrados):
         indice_equipo_select = idx
 
 if not opciones_equipos:
-    with st.sidebar:
+    with str_app.sidebar:
         aviso("No hay equipos con los filtros seleccionados.", "warn", suelto=True)
-    st.stop()
+    str_app.stop()
 
-equipo_seleccionado_label = st.sidebar.selectbox("Equipo", list(opciones_equipos.keys()), index=indice_equipo_select)
+equipo_seleccionado_label = str_app.sidebar.selectbox("Equipo", list(opciones_equipos.keys()), index=indice_equipo_select)
 id_equipo_actual = opciones_equipos[equipo_seleccionado_label]
 
 equipo_info = next(eq for eq in equipos if eq['id'] == id_equipo_actual)
 codigo_activo_actual = equipo_info.get('Codigo de Activo', 'N/A')
 descripcion_actual = equipo_info.get('Equipo') or equipo_info.get('descripcion_equipo') or ''
 
-st.sidebar.markdown(
+str_app.sidebar.markdown(
     f'<div class="sb-activo"><small>Activo seleccionado</small><b>{codigo_activo_actual}</b></div>',
     unsafe_allow_html=True
 )
 
-col_head_txt, col_head_img = st.columns([0.85, 0.15])
+col_head_txt, col_head_img = str_app.columns([0.85, 0.15])
 
 with col_head_txt:
-    st.markdown(
+    str_app.markdown(
         f'<div class="crumb">Activos / Equipos / {codigo_activo_actual}</div>'
         f'<div class="titulo">Equipo {codigo_activo_actual}</div>',
         unsafe_allow_html=True
@@ -262,23 +263,23 @@ with col_head_txt:
         partes_sub.append(str(descripcion_actual))
     partes_sub.append(f"Planta: {equipo_info.get('Planta', 'N/A')}")
     partes_sub.append(f"Línea: {equipo_info.get('Linea', 'N/A')}")
-    st.markdown(f'<div class="subtitulo">{"  |  ".join(partes_sub)}</div>', unsafe_allow_html=True)
+    str_app.markdown(f'<div class="subtitulo">{"  |  ".join(partes_sub)}</div>', unsafe_allow_html=True)
 
 with col_head_img:
     foto_url = equipo_info.get('foto_principal_url')
-    st.markdown('<div class="foto-oficial-container">', unsafe_allow_html=True)
+    str_app.markdown('<div class="foto-oficial-container">', unsafe_allow_html=True)
     if foto_url:
-        st.image(foto_url, caption="Foto oficial", use_container_width=True)
+        str_app.image(foto_url, caption="Foto oficial", use_container_width=True)
     else:
-        with st.popover("Añadir foto"):
-            st.markdown("<b>Selecciona o sube la imagen</b>", unsafe_allow_html=True)
-            foto_subida = st.file_uploader(
+        with str_app.popover("Añadir foto"):
+            str_app.markdown("<b>Selecciona o sube la imagen</b>", unsafe_allow_html=True)
+            foto_subida = str_app.file_uploader(
                 "Selecciona imagen (PNG, JPG)", 
                 type=["png", "jpg", "jpeg"], 
                 key=f"sub_foto_principal_{id_equipo_actual}"
             )
             if foto_subida is not None:
-                if st.button("Guardar foto oficial", key=f"btn_save_foto_{id_equipo_actual}"):
+                if str_app.button("Guardar foto oficial", key=f"btn_save_foto_{id_equipo_actual}"):
                     try:
                         file_path = f"{codigo_activo_actual}/foto_principal.jpg"
                         supabase.storage.from_("Archivo equipos").upload(
@@ -288,13 +289,12 @@ with col_head_img:
                         )
                         public_url = supabase.storage.from_("Archivo equipos").get_public_url(file_path)
                         supabase.table("equipos").update({"foto_principal_url": public_url}).eq("id", id_equipo_actual).execute()
-                        st.success("Foto oficial guardada con éxito.")
-                        st.rerun()
+                        str_app.success("Foto oficial guardada con éxito.")
+                        str_app.rerun()
                     except Exception as e:
                         aviso(f"Error: {e}", "error", suelto=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+    str_app.markdown('</div>', unsafe_allow_html=True)
 
-# Consultas enviando el id numérico tal cual (sin str())
 query_ref_asig = supabase.table("equipo_refacciones").select(
     "id, cantidad_requerida, created_at, refacciones(id, \"ITEM\", \"DESCRIPCION\", \"REFERENCIA\")"
 ).eq("registro_id", id_equipo_actual).execute()
@@ -306,42 +306,42 @@ historial = historial_res.data or []
 archivos_res = supabase.table("archivos_equipos").select("*").eq("registro_id", id_equipo_actual).execute()
 lista_archivos = archivos_res.data or []
 
-col_m1, col_m2, col_m3 = st.columns(3)
+col_m1, col_m2, col_m3 = str_app.columns(3)
 col_m1.metric(label="Código de activo", value=codigo_activo_actual)
 col_m2.metric(label="Refacciones vinculadas", value=len(ref_asignadas))
 col_m3.metric(label="Eventos en bitácora", value=len(historial))
 
-st.markdown("")
+str_app.markdown("")
 
-tab1, tab2, tab3 = st.tabs([
+tab1, tab2, tab3 = str_app.tabs([
     "Ficha, planos y refacciones",
     "Navegar y asignar refacción",
     "Bitácora de mantenimiento"
 ])
 
-if "file_uploader_key" not in st.session_state:
-    st.session_state["file_uploader_key"] = 0
+if "file_uploader_key" not in str_app.session_state:
+    str_app.session_state["file_uploader_key"] = 0
 
 with tab1:
-    col_f1, col_f2 = st.columns([1.1, 0.9])
+    col_f1, col_f2 = str_app.columns([1.1, 0.9])
 
     with col_f1:
         encabezado_panel("Planos, fotografías y documentos del activo")
 
-        col_b_in, col_b_btn = st.columns([2.2, 1.8])
+        col_b_in, col_b_btn = str_app.columns([2.2, 1.8])
         with col_b_in:
-            filtro_archivos = st.text_input("Buscar archivo por nombre:", placeholder="Escribe para filtrar...", key=f"filtro_arc_{id_equipo_actual}")
+            filtro_archivos = str_app.text_input("Buscar archivo por nombre:", placeholder="Escribe para filtrar...", key=f"filtro_arc_{id_equipo_actual}")
         with col_b_btn:
-            st.markdown("<div style='height: 27px;'></div>", unsafe_allow_html=True)
-            with st.popover("Subir nuevo archivo"):
-                st.markdown("<b>Selecciona archivo o PDF</b>", unsafe_allow_html=True)
-                archivo_subido = st.file_uploader(
+            str_app.markdown("<div style='height: 27px;'></div>", unsafe_allow_html=True)
+            with str_app.popover("Subir nuevo archivo"):
+                str_app.markdown("<b>Selecciona archivo o PDF</b>", unsafe_allow_html=True)
+                archivo_subido = str_app.file_uploader(
                     "Selecciona imagen o PDF", 
                     type=["png", "jpg", "jpeg", "pdf"], 
-                    key=f"multi_uploader_{st.session_state['file_uploader_key']}"
+                    key=f"multi_uploader_{str_app.session_state['file_uploader_key']}"
                 )
                 
-                if st.button("Guardar archivo en el equipo"):
+                if str_app.button("Guardar archivo en el equipo"):
                     if archivo_subido is not None:
                         try:
                             file_path = f"{codigo_activo_actual}/{archivo_subido.name}"
@@ -361,15 +361,15 @@ with tab1:
                                 "archivo_url": public_url
                             }).execute()
 
-                            st.success("Archivo subido y asociado correctamente.")
-                            st.session_state["file_uploader_key"] += 1
-                            st.rerun()
+                            str_app.success("Archivo subido y asociado correctamente.")
+                            str_app.session_state["file_uploader_key"] += 1
+                            str_app.rerun()
                         except Exception as e:
                             aviso(f"Error al subir el archivo: {e}", "error", suelto=True)
                     else:
                         aviso("Selecciona un archivo primero.", "warn", suelto=True)
 
-        st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
+        str_app.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
 
         if lista_archivos:
             archivos_filtrados = [
@@ -382,8 +382,8 @@ with tab1:
                     nombre_arc = arc.get('nombre_archivo', 'Archivo')
                     url_arc = arc.get('archivo_url')
                     
-                    with st.container(border=True):
-                        st.markdown(f'Archivo: <a href="{url_arc}" target="_blank"><b>{nombre_arc}</b></a>', unsafe_allow_html=True)
+                    with str_app.container(border=True):
+                        str_app.markdown(f'Archivo: <a href="{url_arc}" target="_blank"><b>{nombre_arc}</b></a>', unsafe_allow_html=True)
             else:
                 aviso("No se encontraron archivos con ese filtro de búsqueda.")
         else:
@@ -403,13 +403,13 @@ with tab1:
                         "Cant.": item.get("cantidad_requerida")
                     })
             if datos_ref_recientes:
-                st.dataframe(datos_ref_recientes, use_container_width=True, hide_index=True)
+                str_app.dataframe(datos_ref_recientes, use_container_width=True, hide_index=True)
             else:
                 aviso("No hay registros recientes de refacciones.")
         else:
             aviso("No hay refacciones asociadas.")
 
-        st.markdown("")
+        str_app.markdown("")
 
         encabezado_panel("Últimos 3 reportes de bitácora")
         if historial:
@@ -421,7 +421,7 @@ with tab1:
                     "Tipo": evento.get('tipo_evento', 'General'),
                     "Detalle": evento.get('descripcion', '')
                 })
-            st.dataframe(datos_hist_recientes, use_container_width=True, hide_index=True)
+            str_app.dataframe(datos_hist_recientes, use_container_width=True, hide_index=True)
         else:
             aviso("No hay eventos registrados en la bitácora.")
 
@@ -431,7 +431,7 @@ with tab2:
     catalogo = cat_ref_res.data or []
 
     if catalogo:
-        with st.form("form_asignar_ref_visual"):
+        with str_app.form("form_asignar_ref_visual"):
             opciones_catalogo = {}
             for r in catalogo:
                 item_id = r.get('id')
@@ -442,15 +442,15 @@ with tab2:
                 label = f"{desc}" + (f"  |  Ref: {ref_fab}" if ref_fab else "") + f"  [{item_num}]"
                 opciones_catalogo[label] = item_id
 
-            col_s1, col_s2, col_s3 = st.columns([3.0, 0.8, 0.9])
+            col_s1, col_s2, col_s3 = str_app.columns([3.0, 0.8, 0.9])
             with col_s1:
-                ref_elegida_label = st.selectbox("Seleccione refacción (puede escribir el código o descripción para buscar):", list(opciones_catalogo.keys()))
+                ref_elegida_label = str_app.selectbox("Seleccione refacción (puede escribir el código o descripción para buscar):", list(opciones_catalogo.keys()))
                 id_ref_elegida = opciones_catalogo[ref_elegida_label]
             with col_s2:
-                cantidad_req = st.number_input("Cantidad:", min_value=0.01, value=1.0, step=0.1, format="%.2f")
+                cantidad_req = str_app.number_input("Cantidad:", min_value=0.01, value=1.0, step=0.1, format="%.2f")
             with col_s3:
-                st.markdown("<div style='height: 27px;'></div>", unsafe_allow_html=True)
-                submit_vin = st.form_submit_button("Vincular")
+                str_app.markdown("<div style='height: 27px;'></div>", unsafe_allow_html=True)
+                submit_vin = str_app.form_submit_button("Vincular")
 
             if submit_vin:
                 try:
@@ -459,14 +459,14 @@ with tab2:
                         "refaccion_id": str(id_ref_elegida),
                         "cantidad_requerida": cantidad_req
                     }).execute()
-                    st.success("Refacción asignada con éxito.")
-                    st.rerun()
+                    str_app.success("Refacción asignada con éxito.")
+                    str_app.rerun()
                 except Exception as e:
                     aviso(f"Error al asignar: {e}", "error", suelto=True)
     else:
         aviso("El catálogo global está vacío.", "warn")
 
-    st.markdown("<div style='margin-top: 25px;'></div>", unsafe_allow_html=True)
+    str_app.markdown("<div style='margin-top: 25px;'></div>", unsafe_allow_html=True)
 
     encabezado_panel("Navegador de refacciones asociadas a este equipo")
     if ref_asignadas:
@@ -489,27 +489,27 @@ with tab2:
                 })
         
         df_asociadas = pd.DataFrame(datos_asociadas_nav)
-        st.dataframe(df_asociadas, use_container_width=True, hide_index=True)
+        str_app.dataframe(df_asociadas, use_container_width=True, hide_index=True)
 
-        with st.expander("Desvincular refacción del equipo"):
-            col_d1, col_d2 = st.columns([2, 1])
+        with str_app.expander("Desvincular refacción del equipo"):
+            col_d1, col_d2 = str_app.columns([2, 1])
             with col_d1:
-                id_relacion_a_borrar_label = st.selectbox("Selecciona refacción a retirar:", list(opciones_desvincular.keys()))
+                id_relacion_a_borrar_label = str_app.selectbox("Selecciona refacción a retirar:", list(opciones_desvincular.keys()))
                 id_relacion_a_borrar = opciones_desvincular[id_relacion_a_borrar_label]
             with col_d2:
-                st.markdown("<div style='height: 27px;'></div>", unsafe_allow_html=True)
-                if st.button("Eliminar asociación", type="secondary"):
+                str_app.markdown("<div style='height: 27px;'></div>", unsafe_allow_html=True)
+                if str_app.button("Eliminar asociación", type="secondary"):
                     try:
                         supabase.table("equipo_refacciones").delete().eq("id", str(id_relacion_a_borrar)).execute()
-                        st.success("Desvinculado con éxito.")
-                        st.rerun()
+                        str_app.success("Desvinculado con éxito.")
+                        str_app.rerun()
                     except Exception as e:
                         aviso(f"Error: {e}", "error", suelto=True)
     else:
         aviso("Este equipo aún no tiene refacciones asociadas.")
 
 with tab3:
-    col_h1, col_h2 = st.columns([1.3, 0.7])
+    col_h1, col_h2 = str_app.columns([1.3, 0.7])
 
     with col_h1:
         encabezado_panel("Navegador de bitácora e historial de eventos")
@@ -523,14 +523,17 @@ with tab3:
                     "Fecha y Hora": evento.get('created_at', '')[:19],
                     "Tipo de Evento": evento.get('tipo_evento', 'General'),
                     "Descripción": evento.get('descripcion', ''),
-                    "Técnico Responsable": evento.get('tecnico', 'No especificado')
+                    "Técnico Responsable": evento.get('tecnico', 'No especificado'),
+                    "F. Inicio": evento.get('fecha_inicio', ''),
+                    "F. Fin": evento.get('fecha_fin', ''),
+                    "Duración (Min)": evento.get('duracion_minutos', '')
                 })
             
             df_bitacora = pd.DataFrame(datos_bitacora)
             
-            st.dataframe(df_bitacora, use_container_width=True, hide_index=True)
+            str_app.dataframe(df_bitacora, use_container_width=True, hide_index=True)
             
-            @st.cache_data
+            @str_app.cache_data
             def convertir_df_a_excel(df):
                 from io import BytesIO
                 output = BytesIO()
@@ -541,7 +544,7 @@ with tab3:
 
             excel_data = convertir_df_a_excel(df_bitacora)
             
-            st.download_button(
+            str_app.download_button(
                 label="Descargar Bitácora en Excel (.xlsx)",
                 data=excel_data,
                 file_name=f"Bitacora_{codigo_activo_actual}.xlsx",
@@ -552,29 +555,83 @@ with tab3:
 
     with col_h2:
         encabezado_panel("Registrar evento")
-        with st.form("form_bitacora"):
-            tipo_evento = st.selectbox("Tipo de evento", [
+
+        tipo_evento = str_app.selectbox(
+            "Tipo de evento",
+            [
                 "Mantenimiento Preventivo",
                 "Mantenimiento Correctivo",
                 "Falla Reportada",
                 "Cambio de Componente",
-                "Inspección"
-            ])
-            descripcion_evento = st.text_area("Detalle de lo realizado / suceso")
-            nombre_tecnico = st.text_input("Técnico responsable")
+                "Inspección",
+            ],
+            key=f"tipo_evt_{id_equipo_actual}",
+        )
 
-            if st.form_submit_button("Guardar en la bitácora"):
+        with str_app.form("form_bitacora"):
+            descripcion_evento = str_app.text_area("Detalle de lo realizado / suceso")
+            nombre_tecnico = str_app.text_input("Técnico responsable")
+
+            fecha_inicio = None
+            fecha_fin = None
+            duracion_minutos = None
+
+            if tipo_evento in [
+                "Mantenimiento Preventivo",
+                "Mantenimiento Correctivo",
+            ]:
+                str_app.markdown("<b>Rango de tiempo de atención</b>", unsafe_allow_html=True)
+                col_t1, col_t2 = str_app.columns(2)
+                with col_t1:
+                    f_ini = str_app.date_input("Fecha inicio")
+                    h_ini = str_app.time_input("Hora inicio")
+                with col_t2:
+                    f_fin = str_app.date_input("Fecha fin")
+                    h_fin = str_app.time_input("Hora fin")
+
+                fecha_inicio = f"{f_ini} {h_ini}"
+                fecha_fin = f"{f_fin} {h_fin}"
+
+                # Cálculo automático de la duración en minutos entre inicio y fin
+                dt_ini = datetime.combine(f_ini, h_ini)
+                dt_fin = datetime.combine(f_fin, h_fin)
+                diff_seconds = (dt_fin - dt_ini).total_seconds()
+                duracion_minutos = max(0, int(diff_seconds / 60))
+
+            else:
+                duracion_minutos = str_app.number_input(
+                    "Duración de la actividad (Minutos):",
+                    min_value=0.0,
+                    value=30.0,
+                    step=5.0,
+                    format="%.0f",
+                )
+
+            if str_app.form_submit_button("Guardar en la bitácora"):
                 if descripcion_evento.strip():
                     try:
-                        supabase.table("historial_equipos").insert({
+                        payload = {
                             "registro_id": id_equipo_actual,
                             "tipo_evento": tipo_evento,
                             "descripcion": descripcion_evento,
-                            "tecnico": nombre_tecnico
-                        }).execute()
-                        st.success("Guardado en la bitácora.")
-                        st.rerun()
+                            "tecnico": nombre_tecnico,
+                            "duracion_minutos": duracion_minutos,
+                        }
+
+                        if fecha_inicio and fecha_fin:
+                            payload["fecha_inicio"] = fecha_inicio
+                            payload["fecha_fin"] = fecha_fin
+
+                        supabase.table("historial_equipos").insert(
+                            payload
+                        ).execute()
+                        str_app.success("Guardado en la bitácora con éxito.")
+                        str_app.rerun()
                     except Exception as e:
                         aviso(f"Error: {e}", "error", suelto=True)
                 else:
-                    aviso("La descripción no puede estar vacía.", "warn", suelto=True)
+                    aviso(
+                        "La descripción no puede estar vacía.",
+                        "warn",
+                        suelto=True,
+                    )
