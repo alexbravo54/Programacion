@@ -294,16 +294,16 @@ with col_head_img:
                         aviso(f"Error: {e}", "error", suelto=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-# Consultas asegurando que el ID se pase estrictamente como string (UUID)
+# Consultas enviando el id numérico tal cual (sin str())
 query_ref_asig = supabase.table("equipo_refacciones").select(
     "id, cantidad_requerida, created_at, refacciones(id, \"ITEM\", \"DESCRIPCION\", \"REFERENCIA\")"
-).eq("registro_id", str(id_equipo_actual)).execute()
+).eq("registro_id", id_equipo_actual).execute()
 ref_asignadas = query_ref_asig.data or []
 
-historial_res = supabase.table("historial_equipos").select("*").eq("registro_id", str(id_equipo_actual)).execute()
+historial_res = supabase.table("historial_equipos").select("*").eq("registro_id", id_equipo_actual).execute()
 historial = historial_res.data or []
 
-archivos_res = supabase.table("archivos_equipos").select("*").eq("registro_id", str(id_equipo_actual)).execute()
+archivos_res = supabase.table("archivos_equipos").select("*").eq("registro_id", id_equipo_actual).execute()
 lista_archivos = archivos_res.data or []
 
 col_m1, col_m2, col_m3 = st.columns(3)
@@ -356,7 +356,7 @@ with tab1:
                             public_url = supabase.storage.from_("Archivo equipos").get_public_url(file_path)
 
                             supabase.table("archivos_equipos").insert({
-                                "registro_id": str(id_equipo_actual),
+                                "registro_id": id_equipo_actual,
                                 "nombre_archivo": archivo_subido.name,
                                 "archivo_url": public_url
                             }).execute()
@@ -455,7 +455,7 @@ with tab2:
             if submit_vin:
                 try:
                     supabase.table("equipo_refacciones").insert({
-                        "registro_id": str(id_equipo_actual),
+                        "registro_id": id_equipo_actual,
                         "refaccion_id": str(id_ref_elegida),
                         "cantidad_requerida": cantidad_req
                     }).execute()
@@ -567,7 +567,7 @@ with tab3:
                 if descripcion_evento.strip():
                     try:
                         supabase.table("historial_equipos").insert({
-                            "registro_id": str(id_equipo_actual),
+                            "registro_id": id_equipo_actual,
                             "tipo_evento": tipo_evento,
                             "descripcion": descripcion_evento,
                             "tecnico": nombre_tecnico
