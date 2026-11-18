@@ -570,20 +570,21 @@ with tab3:
             descripcion_evento = str_app.text_area("Detalle de lo realizado / suceso")
             nombre_tecnico = str_app.text_input("Técnico responsable")
 
-            str_app.markdown("<b>Rango de tiempo de atención</b>", unsafe_allow_html=True)
-            col_t1, col_t2 = str_app.columns(2)
-            with col_t1:
-                f_ini = str_app.date_input("Fecha inicio")
-                h_ini = str_app.time_input("Hora inicio", value=time(0, 0))
-            with col_t2:
-                f_fin = str_app.date_input("Fecha fin")
-                h_fin = str_app.time_input("Hora fin", value=time(1, 0))
+            str_app.markdown("<hr style='margin: 10px 0;'><b>📅 Inicio de la actividad</b>", unsafe_allow_html=True)
+            f_ini = str_app.date_input("Fecha inicio")
+            h_ini = str_app.time_input("Hora inicio", value=time(0, 0), key="h_ini")
+
+            str_app.markdown("<hr style='margin: 10px 0;'><b>🏁 Fin de la actividad</b>", unsafe_allow_html=True)
+            f_fin = str_app.date_input("Fecha fin")
+            h_fin = str_app.time_input("Hora fin", value=time(1, 0), key="h_fin")
 
             fecha_inicio = f"{f_ini} {h_ini}"
             fecha_fin = f"{f_fin} {h_fin}"
 
             dt_ini = datetime.combine(f_ini, h_ini)
             dt_fin = datetime.combine(f_fin, h_fin)
+
+            str_app.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
 
             if str_app.form_submit_button("Guardar en la bitácora"):
                 if not descripcion_evento.strip():
