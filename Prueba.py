@@ -531,43 +531,41 @@ with tab3:
             str_app.markdown("<b>Inicio de la actividad</b>", unsafe_allow_html=True)
             f_ini = str_app.date_input("Fecha inicio")
             
-            c_h1, c_m1, c_ampm1 = str_app.columns(3)
-            with c_h1:
-                h_ini_val = str_app.selectbox("Hora", list(range(1, 13)), index=11, key="h_ini_val") # Por defecto 12
-            with c_m1:
-                m_ini_val = str_app.selectbox("Min", [0, 15, 30, 45], index=0, key="m_ini_val")
-            with c_ampm1:
+            # Selector compacto integrado para hora 12h y AM/PM
+            c_t1, c_a1 = str_app.columns([2, 1])
+            with c_t1:
+                h_ini_val = str_app.time_input("Hora inicio", value=time(0, 0), key="h_ini_val")
+            with c_a1:
                 ampm_ini = str_app.selectbox("AM/PM", ["AM", "PM"], index=0, key="ampm_ini")
 
         with col_f:
             str_app.markdown("<b>Fin de la actividad</b>", unsafe_allow_html=True)
             f_fin = str_app.date_input("Fecha fin")
             
-            c_h2, c_m2, c_ampm2 = str_app.columns(3)
-            with c_h2:
-                h_fin_val = str_app.selectbox("Hora", list(range(1, 13)), index=0, key="h_fin_val") # Por defecto 1
-            with c_m2:
-                m_fin_val = str_app.selectbox("Min", [0, 15, 30, 45], index=0, key="m_fin_val")
-            with c_ampm2:
+            c_t2, c_a2 = str_app.columns([2, 1])
+            with c_t2:
+                h_fin_val = str_app.time_input("Hora fin", value=time(1, 0), key="h_fin_val")
+            with c_a2:
                 ampm_fin = str_app.selectbox("AM/PM", ["AM", "PM"], index=0, key="ampm_fin")
 
-        # Conversión de formato 12h (AM/PM) a objetos time de 24h para cálculos y base de datos
-        def convertir_a_24h(hora, minuto, ampm):
-            h = int(hora)
+        def ajustar_a_24h(t_obj, ampm):
+            h = t_obj.hour
+            m = t_obj.minute
+            s = t_obj.second
             if ampm == "PM" and h < 12:
                 h += 12
             elif ampm == "AM" and h == 12:
                 h = 0
-            return time(h, int(minuto))
+            return time(h, m, s)
 
-        t_ini = convertir_a_24h(h_ini_val, m_ini_val, ampm_ini)
-        t_fin = convertir_a_24h(h_fin_val, m_fin_val, ampm_fin)
+        t_ini_24 = ajustar_a_24h(h_ini_val, ampm_ini)
+        t_fin_24 = ajustar_a_24h(h_fin_val, ampm_fin)
 
-        fecha_inicio = f"{f_ini} {t_ini.strftime('%H:%M:%S')}"
-        fecha_fin = f"{f_fin} {t_fin.strftime('%H:%M:%S')}"
+        fecha_inicio = f"{f_ini} {t_ini_24.strftime('%H:%M:%S')}"
+        fecha_fin = f"{f_fin} {t_fin_24.strftime('%H:%M:%S')}"
 
-        dt_ini = datetime.combine(f_ini, t_ini)
-        dt_fin = datetime.combine(f_fin, t_fin)
+        dt_ini = datetime.combine(f_ini, t_ini_24)
+        dt_fin = datetime.combine(f_fin, t_fin_24)
 
         str_app.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
 
