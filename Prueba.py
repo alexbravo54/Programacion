@@ -509,107 +509,105 @@ with tab2:
         aviso("Este equipo aún no tiene refacciones asociadas.")
 
 with tab3:
-    col_h1, col_h2 = str_app.columns([1.3, 0.7])
+    # DISEÑO VERTICAL DE ANCHO TOTAL (Formulario arriba, listado abajo)
+    encabezado_panel("Registrar evento")
 
-    with col_h1:
-        encabezado_panel("Navegador de bitácora e historial de eventos")
+    tipo_evento = str_app.selectbox(
+        "Tipo de evento",
+        [
+            "Reportar falla",
+            "Cambio de refaccion",
+            "Inspección",
+        ],
+        key=f"tipo_evt_{id_equipo_actual}",
+    )
+
+    with str_app.form("form_bitacora"):
+        descripcion_evento = str_app.text_area("Detalle de lo realizado / suceso")
+        nombre_tecnico = str_app.text_input("Técnico responsable")
+
+        str_app.markdown("<hr style='margin: 10px 0;'><b>Inicio de la actividad</b>", unsafe_allow_html=True)
+        f_ini = str_app.date_input("Fecha inicio")
+        h_ini = str_app.time_input("Hora inicio", value=time(0, 0), key="h_ini")
+
+        str_app.markdown("<hr style='margin: 10px 0;'><b>Fin de la actividad</b>", unsafe_allow_html=True)
+        f_fin = str_app.date_input("Fecha fin")
+        h_fin = str_app.time_input("Hora fin", value=time(1, 0), key="h_fin")
+
+        fecha_inicio = f"{f_ini} {h_ini}"
+        fecha_fin = f"{f_fin} {h_fin}"
+
+        dt_ini = datetime.combine(f_ini, h_ini)
+        dt_fin = datetime.combine(f_fin, h_fin)
+
+        str_app.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
+
+        if str_app.form_submit_button("Guardar en la bitácora"):
+            if not descripcion_evento.strip():
+                str_app.warning("La descripción no puede estar vacía.")
+            elif dt_ini >= dt_fin:
+                str_app.error("La fecha/hora de inicio no puede ser igual o posterior a la fecha/hora fin.")
+            else:
+                try:
+                    diff_seconds = (dt_fin - dt_ini).total_seconds()
+                    duracion_minutos = int(diff_seconds / 60)
+
+                    payload = {
+                        "registro_id": id_equipo_actual,
+                        "tipo_evento": tipo_evento,
+                        "descripcion": descripcion_evento,
+                        "tecnico": nombre_tecnico,
+                        "fecha_inicio": fecha_inicio,
+                        "fecha_fin": fecha_fin,
+                        "duracion_minutos": duracion_minutos,
+                    }
+
+                    supabase.table("historial_equipos").insert(
+                        payload
+                    ).execute()
+                    str_app.success("Guardado en la bitácora con éxito.")
+                    str_app.rerun()
+                except Exception as e:
+                    aviso(f"Error: {e}", "error", suelto=True)
+
+    str_app.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
+    encabezado_panel("Navegador de bitácora e historial de eventos")
+    
+    historial_ordenado = sorted(historial, key=lambda x: x.get('created_at', ''), reverse=True)
+
+    if historial_ordenado:
+        datos_bitacora = []
+        for evento in historial_ordenado:
+            datos_bitacora.append({
+                "Fecha y Hora": evento.get('created_at', '')[:19],
+                "Tipo de Evento": evento.get('tipo_evento', 'General'),
+                "Descripción": evento.get('descripcion', ''),
+                "Técnico Responsable": evento.get('tecnico', 'No especificado'),
+                "F. Inicio": evento.get('fecha_inicio', ''),
+                "F. Fin": evento.get('fecha_fin', ''),
+                "Duración (Min)": evento.get('duracion_minutos', '')
+            })
         
-        historial_ordenado = sorted(historial, key=lambda x: x.get('created_at', ''), reverse=True)
+        df_bitacora = pd.DataFrame(datos_bitacora)
+        
+        str_app.dataframe(df_bitacora, use_container_width=True, hide_index=True)
+        
+        @str_app.cache_data
+        def convertir_df_a_excel(df):
+            from io import BytesIO
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                df.to_excel(writer, index=False, sheet_name='Bitácora')
+            processed_data = output.getvalue()
+            return processed_data
 
-        if historial_ordenado:
-            datos_bitacora = []
-            for evento in historial_ordenado:
-                datos_bitacora.append({
-                    "Fecha y Hora": evento.get('created_at', '')[:19],
-                    "Tipo de Evento": evento.get('tipo_evento', 'General'),
-                    "Descripción": evento.get('descripcion', ''),
-                    "Técnico Responsable": evento.get('tecnico', 'No especificado'),
-                    "F. Inicio": evento.get('fecha_inicio', ''),
-                    "F. Fin": evento.get('fecha_fin', ''),
-                    "Duración (Min)": evento.get('duracion_minutos', '')
-                })
-            
-            df_bitacora = pd.DataFrame(datos_bitacora)
-            
-            str_app.dataframe(df_bitacora, use_container_width=True, hide_index=True)
-            
-            @str_app.cache_data
-            def convertir_df_a_excel(df):
-                from io import BytesIO
-                output = BytesIO()
-                with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                    df.to_excel(writer, index=False, sheet_name='Bitácora')
-                processed_data = output.getvalue()
-                return processed_data
-
-            excel_data = convertir_df_a_excel(df_bitacora)
-            
-            str_app.download_button(
-                label="Descargar Bitácora en Excel (.xlsx)",
-                data=excel_data,
-                file_name=f"Bitacora_{codigo_activo_actual}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
-        else:
-            aviso("No hay eventos registrados en la bitácora de este equipo.")
-
-    with col_h2:
-        encabezado_panel("Registrar evento")
-
-        tipo_evento = str_app.selectbox(
-            "Tipo de evento",
-            [
-                "Reportar falla",
-                "Cambio de refaccion",
-                "Inspección",
-            ],
-            key=f"tipo_evt_{id_equipo_actual}",
+        excel_data = convertir_df_a_excel(df_bitacora)
+        
+        str_app.download_button(
+            label="Descargar Bitácora en Excel (.xlsx)",
+            data=excel_data,
+            file_name=f"Bitacora_{codigo_activo_actual}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
-
-        with str_app.form("form_bitacora"):
-            descripcion_evento = str_app.text_area("Detalle de lo realizado / suceso")
-            nombre_tecnico = str_app.text_input("Técnico responsable")
-
-            str_app.markdown("<hr style='margin: 10px 0;'><b>📅 Inicio de la actividad</b>", unsafe_allow_html=True)
-            f_ini = str_app.date_input("Fecha inicio")
-            h_ini = str_app.time_input("Hora inicio", value=time(0, 0), key="h_ini")
-
-            str_app.markdown("<hr style='margin: 10px 0;'><b>🏁 Fin de la actividad</b>", unsafe_allow_html=True)
-            f_fin = str_app.date_input("Fecha fin")
-            h_fin = str_app.time_input("Hora fin", value=time(1, 0), key="h_fin")
-
-            fecha_inicio = f"{f_ini} {h_ini}"
-            fecha_fin = f"{f_fin} {h_fin}"
-
-            dt_ini = datetime.combine(f_ini, h_ini)
-            dt_fin = datetime.combine(f_fin, h_fin)
-
-            str_app.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
-
-            if str_app.form_submit_button("Guardar en la bitácora"):
-                if not descripcion_evento.strip():
-                    str_app.warning("La descripción no puede estar vacía.")
-                elif dt_ini >= dt_fin:
-                    str_app.error("La fecha/hora de inicio no puede ser igual o posterior a la fecha/hora fin.")
-                else:
-                    try:
-                        diff_seconds = (dt_fin - dt_ini).total_seconds()
-                        duracion_minutos = int(diff_seconds / 60)
-
-                        payload = {
-                            "registro_id": id_equipo_actual,
-                            "tipo_evento": tipo_evento,
-                            "descripcion": descripcion_evento,
-                            "tecnico": nombre_tecnico,
-                            "fecha_inicio": fecha_inicio,
-                            "fecha_fin": fecha_fin,
-                            "duracion_minutos": duracion_minutos,
-                        }
-
-                        supabase.table("historial_equipos").insert(
-                            payload
-                        ).execute()
-                        str_app.success("Guardado en la bitácora con éxito.")
-                        str_app.rerun()
-                    except Exception as e:
-                        aviso(f"Error: {e}", "error", suelto=True)
+    else:
+        aviso("No hay eventos registrados en la bitácora de este equipo.")
