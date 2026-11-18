@@ -509,7 +509,6 @@ with tab2:
         aviso("Este equipo aún no tiene refacciones asociadas.")
 
 with tab3:
-    # DISEÑO VERTICAL DE ANCHO TOTAL (Formulario arriba, listado abajo)
     encabezado_panel("Registrar evento")
 
     tipo_evento = str_app.selectbox(
@@ -526,13 +525,18 @@ with tab3:
         descripcion_evento = str_app.text_area("Detalle de lo realizado / suceso")
         nombre_tecnico = str_app.text_input("Técnico responsable")
 
-        str_app.markdown("<hr style='margin: 10px 0;'><b>Inicio de la actividad</b>", unsafe_allow_html=True)
-        f_ini = str_app.date_input("Fecha inicio")
-        h_ini = str_app.time_input("Hora inicio", value=time(0, 0), key="h_ini")
+        # Columnas distribuidas lado a lado para inicio y fin
+        col_i, col_f = str_app.columns(2)
 
-        str_app.markdown("<hr style='margin: 10px 0;'><b>Fin de la actividad</b>", unsafe_allow_html=True)
-        f_fin = str_app.date_input("Fecha fin")
-        h_fin = str_app.time_input("Hora fin", value=time(1, 0), key="h_fin")
+        with col_i:
+            str_app.markdown("<b>Inicio de la actividad</b>", unsafe_allow_html=True)
+            f_ini = str_app.date_input("Fecha inicio")
+            h_ini = str_app.time_input("Hora inicio", value=time(0, 0), key="h_ini")
+
+        with col_f:
+            str_app.markdown("<b>Fin de la actividad</b>", unsafe_allow_html=True)
+            f_fin = str_app.date_input("Fecha fin")
+            h_fin = str_app.time_input("Hora fin", value=time(1, 0), key="h_fin")
 
         fecha_inicio = f"{f_ini} {h_ini}"
         fecha_fin = f"{f_fin} {h_fin}"
@@ -601,8 +605,10 @@ with tab3:
             processed_data = output.getvalue()
             return processed_data
 
-        excel_data = convertir_df_a_excel(df_bitacora)
+            excel_data = convertir_df_a_excel(df_bitacora)
         
+        excel_data = convertir_df_a_excel(df_bitacora)
+
         str_app.download_button(
             label="Descargar Bitácora en Excel (.xlsx)",
             data=excel_data,
