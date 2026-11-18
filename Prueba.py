@@ -192,28 +192,28 @@ st.sidebar.markdown(
     unsafe_allow_html=True
 )
 
-plantas_disponibles = ["Todas"] + sorted(list(set(str(eq.get('planta', 'Sin Planta')) for eq in equipos if eq.get('planta'))))
+plantas_disponibles = ["Todas"] + sorted(list(set(str(eq.get('Planta', 'Sin Planta')) for eq in equipos if eq.get('Planta'))))
 
 planta_por_defecto = 0
-if equipo_encontrado_por_qr and equipo_encontrado_por_qr.get('planta') in plantas_disponibles:
-    planta_por_defecto = plantas_disponibles.index(equipo_encontrado_por_qr.get('planta'))
+if equipo_encontrado_por_qr and equipo_encontrado_por_qr.get('Planta') in plantas_disponibles:
+    planta_por_defecto = plantas_disponibles.index(equipo_encontrado_por_qr.get('Planta'))
 
 planta_seleccionada = st.sidebar.selectbox("Planta", plantas_disponibles, index=planta_por_defecto)
 
 equipos_filtrados = equipos
 if planta_seleccionada != "Todas":
-    equipos_filtrados = [eq for eq in equipos_filtrados if str(eq.get('planta', 'Sin Planta')) == planta_seleccionada]
+    equipos_filtrados = [eq for eq in equipos_filtrados if str(eq.get('Planta', 'Sin Planta')) == planta_seleccionada]
 
-lineas_disponibles = ["Todas"] + sorted(list(set(str(eq.get('linea', 'Sin Línea')) for eq in equipos_filtrados if eq.get('linea'))))
+lineas_disponibles = ["Todas"] + sorted(list(set(str(eq.get('Linea', 'Sin Línea')) for eq in equipos_filtrados if eq.get('Linea'))))
 
 linea_por_defecto = 0
-if equipo_encontrado_por_qr and equipo_encontrado_por_qr.get('linea') in lineas_disponibles:
-    linea_por_defecto = lineas_disponibles.index(equipo_encontrado_por_qr.get('linea'))
+if equipo_encontrado_por_qr and equipo_encontrado_por_qr.get('Linea') in lineas_disponibles:
+    linea_por_defecto = lineas_disponibles.index(equipo_encontrado_por_qr.get('Linea'))
 
 linea_seleccionada = st.sidebar.selectbox("Línea", lineas_disponibles, index=linea_por_defecto)
 
 if linea_seleccionada != "Todas":
-    equipos_filtrados = [eq for eq in equipos_filtrados if str(eq.get('linea', 'Sin Línea')) == linea_seleccionada]
+    equipos_filtrados = [eq for eq in equipos_filtrados if str(eq.get('Linea', 'Sin Línea')) == linea_seleccionada]
 
 equipos_filtrados = sorted(
     equipos_filtrados, 
@@ -260,8 +260,8 @@ with col_head_txt:
     partes_sub = []
     if descripcion_actual:
         partes_sub.append(str(descripcion_actual))
-    partes_sub.append(f"Planta: {equipo_info.get('planta', 'N/A')}")
-    partes_sub.append(f"Línea: {equipo_info.get('linea', 'N/A')}")
+    partes_sub.append(f"Planta: {equipo_info.get('Planta', 'N/A')}")
+    partes_sub.append(f"Línea: {equipo_info.get('Linea', 'N/A')}")
     st.markdown(f'<div class="subtitulo">{"  |  ".join(partes_sub)}</div>', unsafe_allow_html=True)
 
 with col_head_img:
@@ -294,15 +294,16 @@ with col_head_img:
                         aviso(f"Error: {e}", "error", suelto=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
+# Consultas asegurando que el ID se pase estrictamente como string (UUID)
 query_ref_asig = supabase.table("equipo_refacciones").select(
     "id, cantidad_requerida, created_at, refacciones(id, \"ITEM\", \"DESCRIPCION\", \"REFERENCIA\")"
-).eq("registro_id", id_equipo_actual).execute()
+).eq("registro_id", str(id_equipo_actual)).execute()
 ref_asignadas = query_ref_asig.data or []
 
-historial_res = supabase.table("historial_equipos").select("*").eq("registro_id", id_equipo_actual).execute()
+historial_res = supabase.table("historial_equipos").select("*").eq("registro_id", str(id_equipo_actual)).execute()
 historial = historial_res.data or []
 
-archivos_res = supabase.table("archivos_equipos").select("*").eq("registro_id", id_equipo_actual).execute()
+archivos_res = supabase.table("archivos_equipos").select("*").eq("registro_id", str(id_equipo_actual)).execute()
 lista_archivos = archivos_res.data or []
 
 col_m1, col_m2, col_m3 = st.columns(3)
@@ -355,7 +356,7 @@ with tab1:
                             public_url = supabase.storage.from_("Archivo equipos").get_public_url(file_path)
 
                             supabase.table("archivos_equipos").insert({
-                                "registro_id": id_equipo_actual,
+                                "registro_id": str(id_equipo_actual),
                                 "nombre_archivo": archivo_subido.name,
                                 "archivo_url": public_url
                             }).execute()
@@ -454,8 +455,8 @@ with tab2:
             if submit_vin:
                 try:
                     supabase.table("equipo_refacciones").insert({
-                        "registro_id": id_equipo_actual,
-                        "refaccion_id": id_ref_elegida,
+                        "registro_id": str(id_equipo_actual),
+                        "refaccion_id": str(id_ref_elegida),
                         "cantidad_requerida": cantidad_req
                     }).execute()
                     st.success("Refacción asignada con éxito.")
@@ -499,7 +500,7 @@ with tab2:
                 st.markdown("<div style='height: 27px;'></div>", unsafe_allow_html=True)
                 if st.button("Eliminar asociación", type="secondary"):
                     try:
-                        supabase.table("equipo_refacciones").delete().eq("id", id_relacion_a_borrar).execute()
+                        supabase.table("equipo_refacciones").delete().eq("id", str(id_relacion_a_borrar)).execute()
                         st.success("Desvinculado con éxito.")
                         st.rerun()
                     except Exception as e:
@@ -566,7 +567,7 @@ with tab3:
                 if descripcion_evento.strip():
                     try:
                         supabase.table("historial_equipos").insert({
-                            "registro_id": id_equipo_actual,
+                            "registro_id": str(id_equipo_actual),
                             "tipo_evento": tipo_evento,
                             "descripcion": descripcion_evento,
                             "tecnico": nombre_tecnico
