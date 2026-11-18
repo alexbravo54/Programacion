@@ -531,73 +531,83 @@ with tab3:
             str_app.markdown("<b>Inicio de la actividad</b>", unsafe_allow_html=True)
             f_ini = str_app.date_input("Fecha inicio")
             
-            c_h1, c_m1, c_a1 = str_app.columns([1, 1, 1])
-            with c_h1:
-                h_ini_12 = str_app.selectbox("Hora (1-12)", list(range(1, 13)), index=11, key="h_ini_12") # Por defecto 12
-            with c_m1:
-                m_ini_12 = str_app.selectbox("Minuto", [0, 15, 30, 45], index=0, key="m_ini_12")
-            with c_a1:
-                ampm_ini = str_app.selectbox("AM/PM", ["AM", "PM"], index=0, key="ampm_ini")
+            c_txt1, c_ampm1 = str_app.columns([2, 1])
+            with c_txt1:
+                hora_ini_txt = str_app.text_input("Hora inicio (HH:MM)", value="12:00", key="h_txt_ini")
+            with c_ampm1:
+                ampm_ini = str_app.selectbox("AM/PM", ["AM", "PM"], index=0, key="ampm_ini_sel")
 
         with col_f:
             str_app.markdown("<b>Fin de la actividad</b>", unsafe_allow_html=True)
             f_fin = str_app.date_input("Fecha fin")
             
-            c_h2, c_m2, c_a2 = str_app.columns([1, 1, 1])
-            with c_h2:
-                h_fin_12 = str_app.selectbox("Hora (1-12)", list(range(1, 13)), index=0, key="h_fin_12") # Por defecto 1
-            with c_m2:
-                m_fin_12 = str_app.selectbox("Minuto", [0, 15, 30, 45], index=0, key="m_fin_12")
-            with c_a2:
-                ampm_fin = str_app.selectbox("AM/PM", ["AM", "PM"], index=0, key="ampm_fin")
+            c_txt2, c_ampm2 = str_app.columns([2, 1])
+            with c_txt2:
+                hora_fin_txt = str_app.text_input("Hora fin (HH:MM)", value="01:00", key="h_txt_fin")
+            with c_ampm2:
+                ampm_fin = str_app.selectbox("AM/PM", ["AM", "PM"], index=0, key="ampm_fin_sel")
 
-        def convertir_a_24h(h, m, ampm):
-            hora_int = int(h)
-            min_int = int(m)
-            if ampm == "PM" and hora_int < 12:
-                hora_int += 12
-            elif ampm == "AM" and hora_int == 12:
-                hora_int = 0
-            return time(hora_int, min_int, 0)
+        def parsear_hora_12h(hora_str, ampm_str):
+            try:
+                partes = hora_str.strip().split(":")
+                if len(partes) != 2:
+                    return None
+                h = int(partes[0])
+                m = int(partes[1])
+                
+                # Validación estricta de rango de 12 horas y minutos válidos
+                if not (1 <= h <= 12) or not (0 <= m <= 59):
+                    return None
+                
+                if ampm_str == "PM" and h < 12:
+                    h += 12
+                elif ampm_str == "AM" and h == 12:
+                    h = 0
+                return time(h, m, 0)
+            except:
+                return None
 
-        t_ini_24 = convertir_a_24h(h_ini_12, m_ini_12, ampm_ini)
-        t_fin_24 = convertir_a_24h(h_fin_12, m_fin_12, ampm_fin)
-
-        fecha_inicio = f"{f_ini} {t_ini_24.strftime('%H:%M:%S')}"
-        fecha_fin = f"{f_fin} {t_fin_24.strftime('%H:%M:%S')}"
-
-        dt_ini = datetime.combine(f_ini, t_ini_24)
-        dt_fin = datetime.combine(f_fin, t_fin_24)
+        t_ini_24 = parsear_hora_12h(hora_ini_txt, ampm_ini)
+        t_fin_24 = parsear_hora_12h(hora_fin_txt, ampm_fin)
 
         str_app.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
 
         if str_app.form_submit_button("Guardar en la bitácora"):
             if not descripcion_evento.strip():
                 str_app.warning("La descripción no puede estar vacía.")
-            elif dt_ini >= dt_fin:
-                str_app.error("La fecha/hora de inicio no puede ser igual o posterior a la fecha/hora fin.")
+            elif t_ini_24 is None or t_fin_24 is None:
+                str_app.error("Formato de hora inválido. Use el formato HH:MM (ejemplo: 12:00 u 08:30) y horas entre 1 y 12.")
             else:
-                try:
-                    diff_seconds = (dt_fin - dt_ini).total_seconds()
-                    duracion_minutos = int(diff_seconds / 60)
+                dt_ini = datetime.combine(f_ini, t_ini_24)
+                dt_fin = datetime.combine(f_fin, t_fin_24)
 
-                    payload = {
-                        "registro_id": id_equipo_actual,
-                        "tipo_evento": tipo_evento,
-                        "descripcion": descripcion_evento,
-                        "tecnico": nombre_tecnico,
-                        "fecha_inicio": fecha_inicio,
-                        "fecha_fin": fecha_fin,
-                        "duracion_minutos": duracion_minutos,
-                    }
+                if dt_ini >= dt_fin:
+                    str_app.error("La fecha/hora de inicio no puede ser igual o posterior a la fecha/hora fin.")
+                else:
+                    try:
+                        diff_seconds = (dt_fin - dt_ini).total_seconds()
+                        duracion_minutos = int(diff_seconds / 60)
 
-                    supabase.table("historial_equipos").insert(
-                        payload
-                    ).execute()
-                    str_app.success("Guardado en la bitácora con éxito.")
-                    str_app.rerun()
-                except Exception as e:
-                    aviso(f"Error: {e}", "error", suelto=True)
+                        fecha_inicio = f"{f_ini} {t_ini_24.strftime('%H:%M:%S')}"
+                        fecha_fin = f"{f_fin} {t_fin_24.strftime('%H:%M:%S')}"
+
+                        payload = {
+                            "registro_id": id_equipo_actual,
+                            "tipo_evento": tipo_evento,
+                            "descripcion": descripcion_evento,
+                            "tecnico": nombre_tecnico,
+                            "fecha_inicio": fecha_inicio,
+                            "fecha_fin": fecha_fin,
+                            "duracion_minutos": duracion_minutos,
+                        }
+
+                        supabase.table("historial_equipos").insert(
+                            payload
+                        ).execute()
+                        str_app.success("Guardado en la bitácora con éxito.")
+                        str_app.rerun()
+                    except Exception as e:
+                        aviso(f"Error: {e}", "error", suelto=True)
 
     str_app.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
     encabezado_panel("Navegador de bitácora e historial de eventos")
