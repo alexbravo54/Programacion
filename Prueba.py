@@ -555,7 +555,6 @@ with tab3:
                 h = int(partes[0])
                 m = int(partes[1])
                 
-                # Validación estricta de rango de 12 horas y minutos válidos
                 if not (1 <= h <= 12) or not (0 <= m <= 59):
                     return None
                 
@@ -576,13 +575,15 @@ with tab3:
             if not descripcion_evento.strip():
                 str_app.warning("La descripción no puede estar vacía.")
             elif t_ini_24 is None or t_fin_24 is None:
-                str_app.error("Formato de hora inválido. Use el formato HH:MM (ejemplo: 12:00 u 08:30) y horas entre 1 y 12.")
+                str_app.error("Formato de hora inválido. Use el formato HH:MM (ejemplo: 12:00 u 08:30) con horas de 1 a 12.")
+            elif f_ini > f_fin:
+                str_app.error("La fecha de inicio no puede ser posterior a la fecha fin.")
             else:
                 dt_ini = datetime.combine(f_ini, t_ini_24)
                 dt_fin = datetime.combine(f_fin, t_fin_24)
 
                 if dt_ini >= dt_fin:
-                    str_app.error("La fecha/hora de inicio no puede ser igual o posterior a la fecha/hora fin.")
+                    str_app.error("La hora de inicio no puede ser igual o posterior a la hora fin en la misma fecha.")
                 else:
                     try:
                         diff_seconds = (dt_fin - dt_ini).total_seconds()
