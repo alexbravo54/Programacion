@@ -145,15 +145,18 @@ str_app.markdown("""
     [data-testid="stVerticalBlockBorderWrapper"] { border-radius: 0; }
     h3 { font-size: 15px !important; font-weight: 500 !important; color: var(--navy); margin-top: 0px !important; }
 
-    /* Traducción del límite de tamaño en file_uploader */
+    /* Traducción de instrucciones del file_uploader */
+    [data-testid="stFileUploaderDropzoneInstructions"] > div:last-child,
+    [data-testid="stFileUploaderDropzoneInstructions"] span,
     [data-testid="stFileUploaderDropzoneInstructions"] small {
-        font-size: 0px !important;
+        font-size: 0 !important;
     }
-    [data-testid="stFileUploaderDropzoneInstructions"] small::after {
-        content: "Límite 200 MB por archivo";
+    [data-testid="stFileUploaderDropzoneInstructions"]::after {
+        content: "200 MB por archivo • PNG, JPG, PDF";
         font-size: 12px !important;
         color: var(--txt-2) !important;
-        display: inline-block;
+        display: block;
+        margin-top: 2px;
     }
 </style>
 """, unsafe_allow_html=True)
