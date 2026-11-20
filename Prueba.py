@@ -6,6 +6,9 @@ from supabase import create_client, Client
 SUPABASE_URL = "https://tdhvesgqjowgzkwcsofy.supabase.co/"
 SUPABASE_KEY = "sb_publishable_ePVH6D7O0L88kY48WMHGjA_CN2SsnHZ"
 
+MAX_FILE_MB = 50
+MAX_FILE_BYTES = MAX_FILE_MB * 1024 * 1024
+
 
 @str_app.cache_resource
 def init_connection():
@@ -145,44 +148,15 @@ str_app.markdown("""
     [data-testid="stVerticalBlockBorderWrapper"] { border-radius: 0; }
     h3 { font-size: 15px !important; font-weight: 500 !important; color: var(--navy); margin-top: 0px !important; }
 
-    /* Traducción de instrucciones del file_uploader */
-    [data-testid="stFileUploaderDropzoneInstructions"] > div:last-child,
-    [data-testid="stFileUploaderDropzoneInstructions"] span,
+    /* Traducción del límite a 50 MB por archivo */
     [data-testid="stFileUploaderDropzoneInstructions"] small {
-        font-size: 0 !important;
-        line-height: 0 !important;
+        font-size: 0px !important;
     }
-    [data-testid="stFileUploaderDropzoneInstructions"]::after {
-        content: "50 MB por archivo • PNG, JPG, PDF";
+    [data-testid="stFileUploaderDropzoneInstructions"] small::after {
+        content: "50 MB por archivo";
         font-size: 12px !important;
-        line-height: 1.4 !important;
         color: var(--txt-2) !important;
-        display: block;
-        margin-top: 2px;
-    }
-
-    /* Traducción del botón dentro del file_uploader a "Cargar" */
-    [data-testid="stFileUploaderDropzone"] button,
-    [data-testid="stFileUploaderDropzone"] button span,
-    [data-testid="stFileUploaderDropzone"] button div {
-        font-size: 0 !important;
-        line-height: 0 !important;
-    }
-    [data-testid="stFileUploaderDropzone"] button::after {
-        content: "Cargar";
-        font-size: 13px !important;
-        line-height: 1.2 !important;
-        color: #FFFFFF !important;
-        -webkit-text-fill-color: #FFFFFF !important;
         display: inline-block;
-        vertical-align: middle;
-    }
-    [data-testid="stFileUploaderDropzone"] button svg {
-        width: 16px !important;
-        height: 16px !important;
-        margin-right: 6px !important;
-        vertical-align: middle !important;
-        display: inline-block !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -319,7 +293,9 @@ with col_head_img:
                 key=f"sub_foto_principal_{id_equipo_actual}"
             )
             if foto_subida is not None:
-                if str_app.button("Guardar foto oficial", key=f"btn_save_foto_{id_equipo_actual}"):
+                if foto_subida.size > MAX_FILE_BYTES:
+                    aviso(f"La imagen supera el límite de {MAX_FILE_MB} MB por archivo.", "warn", suelto=True)
+                elif str_app.button("Guardar foto oficial", key=f"btn_save_foto_{id_equipo_actual}"):
                     try:
                         file_path = f"{codigo_activo_actual}/foto_principal.jpg"
                         supabase.storage.from_("Archivo equipos").upload(
@@ -382,7 +358,11 @@ with tab1:
                 )
                 
                 if str_app.button("Guardar archivo en el equipo"):
-                    if archivo_subido is not None:
+                    if archivo_subido is None:
+                        aviso("Selecciona un archivo primero.", "warn", suelto=True)
+                    elif archivo_subido.size > MAX_FILE_BYTES:
+                        aviso(f"El archivo supera el límite de {MAX_FILE_MB} MB por archivo.", "warn", suelto=True)
+                    else:
                         try:
                             file_path = f"{codigo_activo_actual}/{archivo_subido.name}"
                             content_type = "application/pdf" if archivo_subido.name.lower().endswith('.pdf') else "image/jpeg"
@@ -406,8 +386,6 @@ with tab1:
                             str_app.rerun()
                         except Exception as e:
                             aviso(f"Error al subir el archivo: {e}", "error", suelto=True)
-                    else:
-                        aviso("Selecciona un archivo primero.", "warn", suelto=True)
 
         str_app.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
 
