@@ -150,28 +150,39 @@ str_app.markdown("""
     [data-testid="stFileUploaderDropzoneInstructions"] span,
     [data-testid="stFileUploaderDropzoneInstructions"] small {
         font-size: 0 !important;
+        line-height: 0 !important;
     }
     [data-testid="stFileUploaderDropzoneInstructions"]::after {
-        content: "200 MB por archivo • PNG, JPG, PDF";
+        content: "50 MB por archivo • PNG, JPG, PDF";
         font-size: 12px !important;
+        line-height: 1.4 !important;
         color: var(--txt-2) !important;
         display: block;
         margin-top: 2px;
     }
 
-    /* Traducción del botón "Upload" dentro del file_uploader a "Cargar" */
-    [data-testid="stFileUploaderDropzone"] button {
+    /* Traducción del botón dentro del file_uploader a "Cargar" */
+    [data-testid="stFileUploaderDropzone"] button,
+    [data-testid="stFileUploaderDropzone"] button span,
+    [data-testid="stFileUploaderDropzone"] button div {
         font-size: 0 !important;
+        line-height: 0 !important;
     }
     [data-testid="stFileUploaderDropzone"] button::after {
         content: "Cargar";
         font-size: 13px !important;
+        line-height: 1.2 !important;
         color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+        display: inline-block;
+        vertical-align: middle;
     }
     [data-testid="stFileUploaderDropzone"] button svg {
-        font-size: 16px !important;
-        margin-right: 6px;
-        vertical-align: middle;
+        width: 16px !important;
+        height: 16px !important;
+        margin-right: 6px !important;
+        vertical-align: middle !important;
+        display: inline-block !important;
     }
 </style>
 """, unsafe_allow_html=True)
