@@ -144,6 +144,17 @@ str_app.markdown("""
     }
     [data-testid="stVerticalBlockBorderWrapper"] { border-radius: 0; }
     h3 { font-size: 15px !important; font-weight: 500 !important; color: var(--navy); margin-top: 0px !important; }
+
+    /* Traducción del límite de tamaño en file_uploader */
+    [data-testid="stFileUploaderDropzoneInstructions"] small {
+        font-size: 0px !important;
+    }
+    [data-testid="stFileUploaderDropzoneInstructions"] small::after {
+        content: "Límite 200 MB por archivo";
+        font-size: 12px !important;
+        color: var(--txt-2) !important;
+        display: inline-block;
+    }
 </style>
 """, unsafe_allow_html=True)
 
