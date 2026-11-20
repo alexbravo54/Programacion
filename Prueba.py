@@ -152,7 +152,7 @@ str_app.markdown("""
         font-size: 0 !important;
     }
     [data-testid="stFileUploaderDropzoneInstructions"]::after {
-        content: "200 MB por archivo • PNG, JPG, PDF";
+        content: "50 MB por archivo • PNG, JPG, PDF";
         font-size: 12px !important;
         color: var(--txt-2) !important;
         display: block;
