@@ -152,11 +152,26 @@ str_app.markdown("""
         font-size: 0 !important;
     }
     [data-testid="stFileUploaderDropzoneInstructions"]::after {
-        content: "50 MB por archivo • PNG, JPG, PDF";
+        content: "200 MB por archivo • PNG, JPG, PDF";
         font-size: 12px !important;
         color: var(--txt-2) !important;
         display: block;
         margin-top: 2px;
+    }
+
+    /* Traducción del botón "Upload" dentro del file_uploader a "Cargar" */
+    [data-testid="stFileUploaderDropzone"] button {
+        font-size: 0 !important;
+    }
+    [data-testid="stFileUploaderDropzone"] button::after {
+        content: "Cargar";
+        font-size: 13px !important;
+        color: #FFFFFF !important;
+    }
+    [data-testid="stFileUploaderDropzone"] button svg {
+        font-size: 16px !important;
+        margin-right: 6px;
+        vertical-align: middle;
     }
 </style>
 """, unsafe_allow_html=True)
