@@ -12,10 +12,9 @@ SUPABASE_KEY = "sb_publishable_ePVH6D7O0L88kY48WMHGjA_CN2SsnHZ"
 # ------------------------------------------------------------------
 # CONFIGURACIÓN POWER AUTOMATE Y SHAREPOINT
 # ------------------------------------------------------------------
-POWER_AUTOMATE_UPLOAD_URL = "https://575cd9ba20c1e27d907e387ee27e5f.e6.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/09/workflows/e7d0f97cc2944e03a231de69caf2f8d8/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=9Dwxi0TLZ86Ob7CFhkxDHJEPzeWnB3CeXXGV4y_NMDw"
-
-MAX_FILE_MB = 50
-MAX_FILE_BYTES = MAX_FILE_MB * 1024 * 1024
+POWER_AUTOMATE_UPLOAD_URL = (
+    "https://575cd9ba20c1e27d907e387ee27e5f.e6.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/09/workflows/e7d0f97cc2944e03a231de69caf2f8d8/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=9Dwxi0TLZ86Ob7CFhkxDHJEPzeWnB3CeXXGV4y_NMDw"
+)
 
 
 def sanear_nombre_carpeta_sharepoint(texto: str) -> str:
@@ -40,7 +39,7 @@ def subir_a_sharepoint_via_flow(
         "content_type": content_type,
         "contenido_base64": base64.b64encode(contenido_bytes).decode("utf-8"),
     }
-    resp = requests.post(POWER_AUTOMATE_UPLOAD_URL, json=payload, timeout=120)
+    resp = requests.post(POWER_AUTOMATE_UPLOAD_URL, json=payload, timeout=300)
     resp.raise_for_status()
 
     data = resp.json() if resp.text else {}
@@ -191,7 +190,7 @@ str_app.markdown(
     [data-testid="stVerticalBlockBorderWrapper"] { border-radius: 0; }
     h3 { font-size: 15px !important; font-weight: 500 !important; color: var(--navy); margin-top: 0px !important; }
 
-    /* Traducción de instrucciones del file_uploader a 50 MB por archivo */
+    /* Traducción de instrucciones del file_uploader */
     [data-testid="stFileUploaderDropzoneInstructions"] > div:last-child,
     [data-testid="stFileUploaderDropzoneInstructions"] span,
     [data-testid="stFileUploaderDropzoneInstructions"] small {
@@ -199,7 +198,7 @@ str_app.markdown(
         line-height: 0 !important;
     }
     [data-testid="stFileUploaderDropzoneInstructions"]::after {
-        content: "50 MB por archivo • PNG, JPG, PDF";
+        content: "PNG, JPG, PDF";
         font-size: 12px !important;
         line-height: 1.4 !important;
         color: var(--txt-2) !important;
@@ -410,37 +409,30 @@ with col_head_img:
                 type=["png", "jpg", "jpeg"],
                 key=f"sub_foto_principal_{id_equipo_actual}",
             )
-            if foto_subida is not None:
-                if foto_subida.size > MAX_FILE_BYTES:
-                    aviso(
-                        f"La imagen supera el límite de {MAX_FILE_MB} MB por archivo.",
-                        "warn",
-                        suelto=True,
+            if foto_subida is not None and str_app.button(
+                "Guardar foto oficial",
+                key=f"btn_save_foto_{id_equipo_actual}",
+            ):
+                try:
+                    file_path = f"{codigo_activo_actual}/foto_principal.jpg"
+                    supabase.storage.from_("Archivo equipos").upload(
+                        file_path,
+                        foto_subida.getvalue(),
+                        file_options={
+                            "upsert": "true",
+                            "content-type": "image/jpeg",
+                        },
                     )
-                elif str_app.button(
-                    "Guardar foto oficial",
-                    key=f"btn_save_foto_{id_equipo_actual}",
-                ):
-                    try:
-                        file_path = f"{codigo_activo_actual}/foto_principal.jpg"
-                        supabase.storage.from_("Archivo equipos").upload(
-                            file_path,
-                            foto_subida.getvalue(),
-                            file_options={
-                                "upsert": "true",
-                                "content-type": "image/jpeg",
-                            },
-                        )
-                        public_url = supabase.storage.from_(
-                            "Archivo equipos"
-                        ).get_public_url(file_path)
-                        supabase.table("equipos").update(
-                            {"foto_principal_url": public_url}
-                        ).eq("id", id_equipo_actual).execute()
-                        str_app.success("Foto oficial guardada con éxito.")
-                        str_app.rerun()
-                    except Exception as e:
-                        aviso(f"Error: {e}", "error", suelto=True)
+                    public_url = supabase.storage.from_(
+                        "Archivo equipos"
+                    ).get_public_url(file_path)
+                    supabase.table("equipos").update(
+                        {"foto_principal_url": public_url}
+                    ).eq("id", id_equipo_actual).execute()
+                    str_app.success("Foto oficial guardada con éxito.")
+                    str_app.rerun()
+                except Exception as e:
+                    aviso(f"Error: {e}", "error", suelto=True)
     str_app.markdown("</div>", unsafe_allow_html=True)
 
 query_ref_asig = (
@@ -520,13 +512,6 @@ with tab1:
                     if archivo_subido is None:
                         aviso(
                             "Selecciona un archivo primero.",
-                            "warn",
-                            suelto=True,
-                        )
-                    elif archivo_subido.size > MAX_FILE_BYTES:
-                        aviso(
-                            f"El archivo supera el límite de {MAX_FILE_MB} MB"
-                            " por archivo.",
                             "warn",
                             suelto=True,
                         )
