@@ -34,6 +34,7 @@ def subir_a_sharepoint_via_flow(
 ) -> str:
     """Envía el archivo codificado en Base64 al flujo HTTP de Power Automate y retorna la URL."""
     payload = {
+        "accion": "subir",
         "codigo_activo": sanear_nombre_carpeta_sharepoint(codigo_activo),
         "nombre_equipo": sanear_nombre_carpeta_sharepoint(nombre_equipo),
         "nombre_archivo": nombre_archivo,
@@ -51,6 +52,34 @@ def subir_a_sharepoint_via_flow(
         )
 
     return url_sharepoint
+
+
+@str_app.cache_data(show_spinner=False)
+def descargar_archivo_via_flow(
+    codigo_activo: str,
+    nombre_equipo: str,
+    nombre_archivo: str,
+    url_sharepoint: str,
+) -> bytes:
+    """Solicita al flujo de Power Automate el archivo en Base64 y retorna sus bytes."""
+    payload = {
+        "accion": "descargar",
+        "codigo_activo": sanear_nombre_carpeta_sharepoint(codigo_activo),
+        "nombre_equipo": sanear_nombre_carpeta_sharepoint(nombre_equipo),
+        "nombre_archivo": nombre_archivo,
+        "url": url_sharepoint,
+    }
+    resp = requests.post(POWER_AUTOMATE_UPLOAD_URL, json=payload, timeout=300)
+    resp.raise_for_status()
+
+    data = resp.json() if resp.text else {}
+    b64 = data.get("contenido_base64")
+    if not b64:
+        raise ValueError(
+            "Power Automate no devolvió 'contenido_base64' al descargar."
+        )
+
+    return base64.b64decode(b64)
 
 
 def abrir_barra_lateral_js():
@@ -507,7 +536,6 @@ archivos_res = (
     .select("*")
     .eq("registro_id", id_equipo_actual)
     .execute()
-)
 lista_archivos = archivos_res.data or []
 
 col_m1, col_m2, col_m3 = str_app.columns(3)
@@ -577,6 +605,7 @@ with tab1:
                             "archivo_url": url_sharepoint,
                         }).execute()
 
+                        descargar_archivo_via_flow.clear()
                         str_app.success(
                             "Archivo guardado en SharePoint y vinculado al"
                             " equipo."
@@ -616,14 +645,28 @@ with tab1:
                                 use_container_width=True,
                             )
                         with col_desc:
-                            url_descarga = (
-                                f"{url_arc}{'&' if '?' in url_arc else '?'}download=1"
-                            )
-                            str_app.link_button(
-                                "Descargar",
-                                url_descarga,
-                                use_container_width=True,
-                            )
+                            try:
+                                bytes_archivo = descargar_archivo_via_flow(
+                                    codigo_activo=codigo_activo_actual,
+                                    nombre_equipo=descripcion_actual
+                                    or f"Equipo_{codigo_activo_actual}",
+                                    nombre_archivo=nombre_arc,
+                                    url_sharepoint=url_arc,
+                                )
+                                str_app.download_button(
+                                    label="Descargar",
+                                    data=bytes_archivo,
+                                    file_name=nombre_arc,
+                                    mime=(
+                                        "application/pdf"
+                                        if nombre_arc.lower().endswith(".pdf")
+                                        else "application/octet-stream"
+                                    ),
+                                    key=f"dl_{id_equipo_actual}_{idx_arc}",
+                                    use_container_width=True,
+                                )
+                            except Exception as e:
+                                str_app.caption(f"No disponible: {e}")
                     else:
                         str_app.markdown(
                             f"Archivo: <b>{nombre_arc}</b> — <i>Sin enlace"
