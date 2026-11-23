@@ -1,11 +1,12 @@
 import base64
 from datetime import datetime, time
+from io import BytesIO
 import re
 import pandas as pd
 import requests
 import streamlit as str_app
 import streamlit.components.v1 as components
-from supabase import Client, create_client
+from supabase import create_client
 
 SUPABASE_URL = "https://tdhvesgqjowgzkwcsofy.supabase.co/"
 SUPABASE_KEY = "sb_publishable_ePVH6D7O0L88kY48WMHGjA_CN2SsnHZ"
@@ -148,7 +149,7 @@ str_app.markdown(
     }
 
     p, span, label, div { color: var(--txt); }
-    
+
     [data-testid="stSidebar"] { background: var(--navy); border-right: 1px solid var(--navy); }
     [data-testid="stSidebar"] label p, [data-testid="stSidebar"] span {
         color: var(--side-txt) !important;
@@ -222,8 +223,8 @@ str_app.markdown(
     button[kind="secondary"],
     button[kind="primary"] {
         width: 100%; border-radius: 2px;
-        background: var(--navy) !important; 
-        color: #FFFFFF !important; 
+        background: var(--navy) !important;
+        color: #FFFFFF !important;
         border: 1px solid var(--navy) !important;
         font-size: 13px !important;
         text-decoration: none !important;
@@ -240,15 +241,15 @@ str_app.markdown(
     div.stDownloadButton > button:hover,
     div.stLinkButton > a:hover,
     [data-testid="stFormSubmitButton"] > button:hover {
-        background: var(--navy-2) !important; 
-        border-color: var(--navy-2) !important; 
+        background: var(--navy-2) !important;
+        border-color: var(--navy-2) !important;
         color: #FFFFFF !important;
     }
-    
-    div[data-baseweb="input"] input, 
+
+    div[data-baseweb="input"] input,
     div[data-baseweb="textarea"] textarea,
-    input, textarea { 
-        color: var(--txt) !important; 
+    input, textarea {
+        color: var(--txt) !important;
         background-color: #FFFFFF !important;
         -webkit-text-fill-color: var(--txt) !important;
     }
@@ -536,6 +537,7 @@ archivos_res = (
     .select("*")
     .eq("registro_id", id_equipo_actual)
     .execute()
+)
 lista_archivos = archivos_res.data or []
 
 col_m1, col_m2, col_m3 = str_app.columns(3)
@@ -588,7 +590,6 @@ with tab1:
                             else "application/octet-stream"
                         )
 
-                        # Envío a Power Automate -> SharePoint
                         url_sharepoint = subir_a_sharepoint_via_flow(
                             codigo_activo=codigo_activo_actual,
                             nombre_equipo=descripcion_actual
@@ -598,7 +599,6 @@ with tab1:
                             content_type=content_type,
                         )
 
-                        # Registro del enlace en Supabase
                         supabase.table("archivos_equipos").insert({
                             "registro_id": id_equipo_actual,
                             "nombre_archivo": archivo_subido.name,
@@ -907,7 +907,7 @@ with tab3:
                 elif ampm_str == "AM" and h == 12:
                     h = 0
                 return time(h, m, 0)
-            except:
+            except Exception:
                 return None
 
         t_ini_24 = parsear_hora_12h(hora_ini_txt, ampm_ini)
@@ -996,13 +996,10 @@ with tab3:
 
         @str_app.cache_data
         def convertir_df_a_excel(df):
-            from io import BytesIO
-
             output = BytesIO()
             with pd.ExcelWriter(output, engine="openpyxl") as writer:
                 df.to_excel(writer, index=False, sheet_name="Bitácora")
-            processed_data = output.getvalue()
-            return processed_data
+            return output.getvalue()
 
         excel_data = convertir_df_a_excel(df_bitacora)
 
