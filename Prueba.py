@@ -83,6 +83,13 @@ str_app.markdown(
     #MainMenu, footer, [data-testid="stToolbar"], [data-testid="stDeployButton"] { visibility: hidden; }
     header[data-testid="stHeader"] { background: transparent; }
 
+    /* Mantener visible el control para reabrir la barra lateral */
+    [data-testid="collapsedControl"] {
+        visibility: visible !important;
+        opacity: 1 !important;
+        color: var(--navy) !important;
+    }
+
     p, span, label, div { color: var(--txt); }
     
     [data-testid="stSidebar"] { background: var(--navy); border-right: 1px solid var(--navy); }
@@ -578,16 +585,18 @@ with tab1:
 
                     with str_app.container(border=True):
                         if url_arc:
-                            str_app.markdown(
-                                f'Archivo: <a href="{url_arc}"'
-                                ' target="_blank"'
-                                f' rel="noopener noreferrer"><b>{nombre_arc}</b></a>'
-                                " &nbsp;|&nbsp;"
-                                f' <a href="{url_arc}" target="_blank"'
-                                ' rel="noopener noreferrer">Abrir en'
-                                " SharePoint</a>",
-                                unsafe_allow_html=True,
-                            )
+                            col_info, col_btn = str_app.columns([3.0, 1.0])
+                            with col_info:
+                                str_app.markdown(
+                                    f"Archivo: <b>{nombre_arc}</b>",
+                                    unsafe_allow_html=True,
+                                )
+                            with col_btn:
+                                str_app.link_button(
+                                    "Abrir en SharePoint",
+                                    url_arc,
+                                    use_container_width=True,
+                                )
                         else:
                             str_app.markdown(
                                 f"Archivo: <b>{nombre_arc}</b> — <i>Sin"
