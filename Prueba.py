@@ -228,6 +228,7 @@ str_app.markdown(
         border: 1px solid var(--navy) !important;
         font-size: 13px !important;
         text-decoration: none !important;
+        white-space: nowrap !important;
     }
     div.stButton > button *,
     div.stDownloadButton > button *,
@@ -236,6 +237,7 @@ str_app.markdown(
     button[kind="secondary"] *,
     button[kind="primary"] * {
         color: #FFFFFF !important;
+        white-space: nowrap !important;
     }
     div.stButton > button:hover,
     div.stDownloadButton > button:hover,
@@ -631,7 +633,7 @@ with tab1:
                 with str_app.container(border=True):
                     if url_arc:
                         col_info, col_abrir, col_desc = str_app.columns(
-                            [2.2, 1.0, 0.9]
+                            [1.55, 1.55, 0.9]
                         )
                         with col_info:
                             str_app.markdown(
