@@ -4,6 +4,7 @@ import re
 import pandas as pd
 import requests
 import streamlit as str_app
+import streamlit.components.v1 as components
 from supabase import Client, create_client
 
 SUPABASE_URL = "https://tdhvesgqjowgzkwcsofy.supabase.co/"
@@ -50,6 +51,33 @@ def subir_a_sharepoint_via_flow(
         )
 
     return url_sharepoint
+
+
+def abrir_barra_lateral_js():
+    """Intenta abrir la barra lateral de Streamlit si se encuentra colapsada."""
+    components.html(
+        """
+        <script>
+        (function() {
+            const doc = window.parent.document;
+            const sidebar = doc.querySelector('[data-testid="stSidebar"]');
+            const isExpanded = sidebar && sidebar.getAttribute('aria-expanded') === 'true';
+            if (!isExpanded) {
+                const expandBtn =
+                    doc.querySelector('[data-testid="collapsedControl"] button') ||
+                    doc.querySelector('[data-testid="stSidebarCollapseButton"] button') ||
+                    doc.querySelector('button[aria-label="Expand sidebar"]') ||
+                    doc.querySelector('button[title="Expand sidebar"]');
+                if (expandBtn) {
+                    expandBtn.click();
+                }
+            }
+        })();
+        </script>
+        """,
+        height=0,
+        width=0,
+    )
 
 
 @str_app.cache_resource
@@ -159,6 +187,8 @@ str_app.markdown(
     .aviso.suelto { border-top: 1px solid var(--line); }
 
     div.stButton > button,
+    div.stDownloadButton > button,
+    div.stLinkButton > a,
     [data-testid="stFormSubmitButton"] > button,
     button[kind="secondary"],
     button[kind="primary"] {
@@ -167,14 +197,19 @@ str_app.markdown(
         color: #FFFFFF !important; 
         border: 1px solid var(--navy) !important;
         font-size: 13px !important;
+        text-decoration: none !important;
     }
     div.stButton > button *,
+    div.stDownloadButton > button *,
+    div.stLinkButton > a *,
     [data-testid="stFormSubmitButton"] > button *,
     button[kind="secondary"] *,
     button[kind="primary"] * {
         color: #FFFFFF !important;
     }
     div.stButton > button:hover,
+    div.stDownloadButton > button:hover,
+    div.stLinkButton > a:hover,
     [data-testid="stFormSubmitButton"] > button:hover {
         background: var(--navy-2) !important; 
         border-color: var(--navy-2) !important; 
@@ -381,6 +416,12 @@ str_app.sidebar.markdown(
     unsafe_allow_html=True,
 )
 
+# Botón superior para abrir/desplegar la barra lateral de plantas, líneas y equipos
+col_btn_sb, _ = str_app.columns([0.24, 0.76])
+with col_btn_sb:
+    if str_app.button("Plantas, líneas y equipos", key="btn_abrir_sidebar"):
+        abrir_barra_lateral_js()
+
 col_head_txt, col_head_img = str_app.columns([0.85, 0.15])
 
 with col_head_txt:
@@ -491,120 +532,104 @@ with tab1:
     with col_f1:
         encabezado_panel("Planos, fotografías y documentos del activo")
 
-        col_b_in, col_b_btn = str_app.columns([2.2, 1.8])
-        with col_b_in:
-            filtro_archivos = str_app.text_input(
-                "Buscar archivo por nombre:",
-                placeholder="Escribe para filtrar...",
-                key=f"filtro_arc_{id_equipo_actual}",
-            )
-        with col_b_btn:
+        with str_app.popover("Subir nuevo archivo"):
             str_app.markdown(
-                "<div style='height: 27px;'></div>", unsafe_allow_html=True
+                "<b>Selecciona archivo o PDF</b>", unsafe_allow_html=True
             )
-            with str_app.popover("Subir nuevo archivo"):
-                str_app.markdown(
-                    "<b>Selecciona archivo o PDF</b>", unsafe_allow_html=True
-                )
-                archivo_subido = str_app.file_uploader(
-                    "Selecciona imagen o PDF",
-                    type=["png", "jpg", "jpeg", "pdf"],
-                    key=(
-                        "multi_uploader_"
-                        f"{str_app.session_state['file_uploader_key']}"
-                    ),
-                )
+            archivo_subido = str_app.file_uploader(
+                "Selecciona imagen o PDF",
+                type=["png", "jpg", "jpeg", "pdf"],
+                key=(
+                    "multi_uploader_"
+                    f"{str_app.session_state['file_uploader_key']}"
+                ),
+            )
 
-                if str_app.button("Guardar archivo en el equipo"):
-                    if archivo_subido is None:
+            if str_app.button("Guardar archivo en el equipo"):
+                if archivo_subido is None:
+                    aviso(
+                        "Selecciona un archivo primero.",
+                        "warn",
+                        suelto=True,
+                    )
+                else:
+                    try:
+                        content_type = archivo_subido.type or (
+                            "application/pdf"
+                            if archivo_subido.name.lower().endswith(".pdf")
+                            else "application/octet-stream"
+                        )
+
+                        # Envío a Power Automate -> SharePoint
+                        url_sharepoint = subir_a_sharepoint_via_flow(
+                            codigo_activo=codigo_activo_actual,
+                            nombre_equipo=descripcion_actual
+                            or f"Equipo_{codigo_activo_actual}",
+                            nombre_archivo=archivo_subido.name,
+                            contenido_bytes=archivo_subido.getvalue(),
+                            content_type=content_type,
+                        )
+
+                        # Registro del enlace en Supabase
+                        supabase.table("archivos_equipos").insert({
+                            "registro_id": id_equipo_actual,
+                            "nombre_archivo": archivo_subido.name,
+                            "archivo_url": url_sharepoint,
+                        }).execute()
+
+                        str_app.success(
+                            "Archivo guardado en SharePoint y vinculado al"
+                            " equipo."
+                        )
+                        str_app.session_state["file_uploader_key"] += 1
+                        str_app.rerun()
+                    except Exception as e:
                         aviso(
-                            "Selecciona un archivo primero.",
-                            "warn",
+                            f"Error al enviar a SharePoint: {e}",
+                            "error",
                             suelto=True,
                         )
-                    else:
-                        try:
-                            content_type = (
-                                archivo_subido.type
-                                or (
-                                    "application/pdf"
-                                    if archivo_subido.name.lower().endswith(
-                                        ".pdf"
-                                    )
-                                    else "application/octet-stream"
-                                )
-                            )
-
-                            # Envío a Power Automate -> SharePoint
-                            url_sharepoint = subir_a_sharepoint_via_flow(
-                                codigo_activo=codigo_activo_actual,
-                                nombre_equipo=descripcion_actual
-                                or f"Equipo_{codigo_activo_actual}",
-                                nombre_archivo=archivo_subido.name,
-                                contenido_bytes=archivo_subido.getvalue(),
-                                content_type=content_type,
-                            )
-
-                            # Registro del enlace en Supabase
-                            supabase.table("archivos_equipos").insert({
-                                "registro_id": id_equipo_actual,
-                                "nombre_archivo": archivo_subido.name,
-                                "archivo_url": url_sharepoint,
-                            }).execute()
-
-                            str_app.success(
-                                "Archivo guardado en SharePoint y vinculado al"
-                                " equipo."
-                            )
-                            str_app.session_state["file_uploader_key"] += 1
-                            str_app.rerun()
-                        except Exception as e:
-                            aviso(
-                                f"Error al enviar a SharePoint: {e}",
-                                "error",
-                                suelto=True,
-                            )
 
         str_app.markdown(
             "<div style='margin-top: 10px;'></div>", unsafe_allow_html=True
         )
 
         if lista_archivos:
-            archivos_filtrados = [
-                arc
-                for arc in lista_archivos
-                if not filtro_archivos
-                or filtro_archivos.lower()
-                in str(arc.get("nombre_archivo", "")).lower()
-            ]
+            for idx_arc, arc in enumerate(lista_archivos):
+                nombre_arc = arc.get("nombre_archivo", "Archivo")
+                url_arc = (arc.get("archivo_url") or "").strip()
 
-            if archivos_filtrados:
-                for arc in archivos_filtrados:
-                    nombre_arc = arc.get("nombre_archivo", "Archivo")
-                    url_arc = (arc.get("archivo_url") or "").strip()
-
-                    with str_app.container(border=True):
-                        if url_arc:
-                            col_info, col_btn = str_app.columns([3.0, 1.0])
-                            with col_info:
-                                str_app.markdown(
-                                    f"Archivo: <b>{nombre_arc}</b>",
-                                    unsafe_allow_html=True,
-                                )
-                            with col_btn:
-                                str_app.link_button(
-                                    "Abrir en SharePoint",
-                                    url_arc,
-                                    use_container_width=True,
-                                )
-                        else:
+                with str_app.container(border=True):
+                    if url_arc:
+                        col_info, col_abrir, col_desc = str_app.columns(
+                            [2.2, 1.0, 0.9]
+                        )
+                        with col_info:
                             str_app.markdown(
-                                f"Archivo: <b>{nombre_arc}</b> — <i>Sin"
-                                " enlace disponible</i>",
+                                f"Archivo: <b>{nombre_arc}</b>",
                                 unsafe_allow_html=True,
                             )
-            else:
-                aviso("No se encontraron archivos con ese filtro de búsqueda.")
+                        with col_abrir:
+                            str_app.link_button(
+                                "Abrir en SharePoint",
+                                url_arc,
+                                use_container_width=True,
+                            )
+                        with col_desc:
+                            url_descarga = (
+                                f"{url_arc}{'&' if '?' in url_arc else '?'}download=1"
+                            )
+                            str_app.link_button(
+                                "Descargar",
+                                url_descarga,
+                                use_container_width=True,
+                            )
+                    else:
+                        str_app.markdown(
+                            f"Archivo: <b>{nombre_arc}</b> — <i>Sin enlace"
+                            " disponible</i>",
+                            unsafe_allow_html=True,
+                        )
         else:
             aviso("Este equipo no tiene planos o imágenes adjuntas.")
 
