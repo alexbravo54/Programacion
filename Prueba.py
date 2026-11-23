@@ -31,9 +31,9 @@ def subir_a_sharepoint_via_flow(
     contenido_bytes: bytes,
     content_type: str,
 ) -> str:
-    """Envía el archivo codificado en Base64 al flujo HTTP de Power Automate."""
+    """Envía el archivo codificado en Base64 al flujo HTTP de Power Automate y retorna la URL."""
     payload = {
-        "codigo_activo": str(codigo_activo).strip(),
+        "codigo_activo": sanear_nombre_carpeta_sharepoint(codigo_activo),
         "nombre_equipo": sanear_nombre_carpeta_sharepoint(nombre_equipo),
         "nombre_archivo": nombre_archivo,
         "content_type": content_type,
@@ -43,7 +43,7 @@ def subir_a_sharepoint_via_flow(
     resp.raise_for_status()
 
     data = resp.json() if resp.text else {}
-    url_sharepoint = data.get("url")
+    url_sharepoint = (data.get("url") or "").strip()
     if not url_sharepoint:
         raise ValueError(
             "Power Automate no devolvió la URL del archivo en SharePoint."
@@ -518,9 +518,14 @@ with tab1:
                     else:
                         try:
                             content_type = (
-                                "application/pdf"
-                                if archivo_subido.name.lower().endswith(".pdf")
-                                else "image/jpeg"
+                                archivo_subido.type
+                                or (
+                                    "application/pdf"
+                                    if archivo_subido.name.lower().endswith(
+                                        ".pdf"
+                                    )
+                                    else "application/octet-stream"
+                                )
                             )
 
                             # Envío a Power Automate -> SharePoint
@@ -569,14 +574,26 @@ with tab1:
             if archivos_filtrados:
                 for arc in archivos_filtrados:
                     nombre_arc = arc.get("nombre_archivo", "Archivo")
-                    url_arc = arc.get("archivo_url")
+                    url_arc = (arc.get("archivo_url") or "").strip()
 
                     with str_app.container(border=True):
-                        str_app.markdown(
-                            f'Archivo: <a href="{url_arc}"'
-                            f' target="_blank"><b>{nombre_arc}</b></a>',
-                            unsafe_allow_html=True,
-                        )
+                        if url_arc:
+                            str_app.markdown(
+                                f'Archivo: <a href="{url_arc}"'
+                                ' target="_blank"'
+                                f' rel="noopener noreferrer"><b>{nombre_arc}</b></a>'
+                                " &nbsp;|&nbsp;"
+                                f' <a href="{url_arc}" target="_blank"'
+                                ' rel="noopener noreferrer">Abrir en'
+                                " SharePoint</a>",
+                                unsafe_allow_html=True,
+                            )
+                        else:
+                            str_app.markdown(
+                                f"Archivo: <b>{nombre_arc}</b> — <i>Sin"
+                                " enlace disponible</i>",
+                                unsafe_allow_html=True,
+                            )
             else:
                 aviso("No se encontraron archivos con ese filtro de búsqueda.")
         else:
